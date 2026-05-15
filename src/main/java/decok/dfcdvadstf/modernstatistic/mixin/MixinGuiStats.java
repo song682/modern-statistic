@@ -1,0 +1,387 @@
+package decok.dfcdvadstf.modernstatistic.mixin;
+
+import decok.dfcdvadstf.createworldui.api.ContentPanelRenderer;
+import decok.dfcdvadstf.createworldui.api.tab.TabState;
+import decok.dfcdvadstf.modernstatistic.tab.StatsGeneralTab;
+import decok.dfcdvadstf.modernstatistic.tab.StatsItemsTab;
+import decok.dfcdvadstf.modernstatistic.tab.StatsMobsTab;
+import decok.dfcdvadstf.modernstatistic.tab.StatsTab;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.achievement.GuiStats;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.stats.StatFileWriter;
+import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.List;
+
+/**
+ * <p>Transforms the vanilla statistics screen via Mixin to implement a tabbed layout
+ * similar to the ModernCreateWorldUI style.</p>
+ *
+ * <p>Replaces the four bottom category buttons with three top-positioned tab buttons
+ * (General, Items, Mobs) and merges Blocks + Items into a single "Items" tab.</p>
+ *
+ * <p>通过 Mixin 将原版统计界面改造为标签页式布局（类似 ModernCreateWorldUI）。</p>
+ * <p>用三个顶部标签页按钮（通用、物品、生物）替代原来的四个底部按钮，
+ * 并将方块统计和物品统计合并到一个"物品"标签页中。</p>
+ */
+@Mixin(GuiStats.class)
+public abstract class MixinGuiStats extends GuiScreen {
+
+    // === Vanilla shadows ===
+
+    @Shadow private GuiScreen field_146549_a;
+    @Shadow protected String field_146542_f;
+    @Shadow private StatFileWriter field_146546_t;
+    @Shadow private boolean doesGuiPauseGame;
+
+    // === New fields ===
+
+    @Unique private StatsTab modernStatistic$tabGeneral;
+    @Unique private StatsTab modernStatistic$tabItems;
+    @Unique private StatsTab modernStatistic$tabMobs;
+    @Unique private StatsTab modernStatistic$currentTab;
+
+    @Unique private static final ResourceLocation MODERN_STATISTIC$TABS_TEXTURE =
+            new ResourceLocation("createworldui", "textures/gui/tabs.png");
+    @Unique private static final int MODERN_STATISTIC$TAB_WIDTH = 130;
+    @Unique private static final int MODERN_STATISTIC$TAB_HEIGHT = 24;
+
+    @Unique
+    private static final String[] MODERN_STATISTIC$LOADING_ANIM = new String[] {
+            "▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄ ▃", "_ ▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄",
+            "_ _ ▃ ▄ ▅ ▆ ▇ ▆ ▅", "_ _ _ ▃ ▄ ▅ ▆ ▇ ▆",
+            "_ _ _ _ ▃ ▄ ▅ ▆ ▇", "_ _ _ ▃ ▄ ▅ ▆ ▇ ▆",
+            "_ _ ▃ ▄ ▅ ▆ ▇ ▆ ▅", "_ ▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄"
+    };
+
+    // ==================== Injections ====================
+
+    /**
+     * Intercept the stats-data-arrived callback.
+     * Replace vanilla's four inner slot lists with our three tabs.
+     */
+    @Inject(method = "func_146509_g", at = @At("HEAD"), cancellable = true)
+    private void modernStatistic$onStatsReady(CallbackInfo ci) {
+        if (!this.doesGuiPauseGame) return;
+
+        ci.cancel();
+
+        // Create tabs
+        modernStatistic$tabGeneral = new StatsGeneralTab();
+        modernStatistic$tabItems = new StatsItemsTab();
+        modernStatistic$tabMobs = new StatsMobsTab();
+
+        @SuppressWarnings("unchecked")
+        List<GuiButton> btns = this.buttonList;
+
+        modernStatistic$tabGeneral.initGui(
+                (GuiStats) (Object) this, this.width, this.height, btns, this.field_146546_t);
+        modernStatistic$tabItems.initGui(
+                (GuiStats) (Object) this, this.width, this.height, btns, this.field_146546_t);
+        modernStatistic$tabMobs.initGui(
+                (GuiStats) (Object) this, this.width, this.height, btns, this.field_146546_t);
+
+        // Default to General tab
+        modernStatistic$currentTab = modernStatistic$tabGeneral;
+        modernStatistic$currentTab.setVisible(true);
+
+        modernStatistic$setupButtons();
+        this.doesGuiPauseGame = false;
+    }
+
+    // ==================== Button setup ====================
+
+    @Unique
+    private void modernStatistic$setupButtons() {
+        // Done button
+        this.buttonList.add(new GuiButton(0,
+                this.width / 2 + 4, this.height - 28,
+                150, 20, I18n.format("gui.done")));
+
+        // Create tab buttons at the top
+        modernStatistic$createTabButtons();
+    }
+
+    @Unique
+    private void modernStatistic$createTabButtons() {
+        int tabCount = 3;
+        int btnW = Math.min(MODERN_STATISTIC$TAB_WIDTH, this.width / tabCount);
+        int totalW = btnW * tabCount;
+        int startX = this.width / 2 - totalW / 2;
+
+        StatsTab[] tabs = { modernStatistic$tabGeneral, modernStatistic$tabItems, modernStatistic$tabMobs };
+
+        for (int i = 0; i < tabs.length; i++) {
+            final StatsTab tab = tabs[i];
+            final int xPos = startX + i * btnW;
+
+            if (tab == null) continue;
+
+            boolean enabled = true;
+            if (tab instanceof StatsItemsTab && ((StatsItemsTab) tab).isEmpty()) {
+                enabled = false;
+            }
+            if (tab instanceof StatsMobsTab && ((StatsMobsTab) tab).isEmpty()) {
+                enabled = false;
+            }
+
+            GuiButton btn = new GuiButton(tab.getTabId(), xPos, 0, btnW,
+                    MODERN_STATISTIC$TAB_HEIGHT, tab.getTabName()) {
+                @Override
+                public void drawButton(Minecraft mc, int mouseX, int mouseY) {
+                    if (!this.visible) return;
+
+                    mc.getTextureManager().bindTexture(MODERN_STATISTIC$TABS_TEXTURE);
+                    GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+                    boolean hovered = mouseX >= this.xPosition && mouseY >= this.yPosition
+                            && mouseX < this.xPosition + this.width
+                            && mouseY < this.yPosition + this.height;
+                    boolean selected = modernStatistic$currentTab != null
+                            && modernStatistic$currentTab.getTabId() == this.id;
+
+                    TabState state;
+                    if (selected) {
+                        state = hovered ? TabState.SELECTED_HOVER : TabState.SELECTED;
+                    } else {
+                        state = hovered ? TabState.HOVER : TabState.NORMAL;
+                    }
+
+                    drawTexturedModalRect(this.xPosition, this.yPosition,
+                            state.u, state.v, this.width, MODERN_STATISTIC$TAB_HEIGHT);
+                    int color = this.enabled ? state.getTextColor() : 0x888888;
+                    drawCenteredString(mc.fontRenderer, this.displayString,
+                            this.xPosition + this.width / 2,
+                            this.yPosition + (this.height - 8) / 2, color);
+                }
+            };
+            btn.enabled = enabled;
+            btn.visible = true;
+            this.buttonList.add(btn);
+        }
+    }
+
+    // ==================== drawScreen ====================
+
+    @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
+    public void modernStatistic$onDrawScreen(int mouseX, int mouseY, float partialTicks,
+                                              CallbackInfo ci) {
+        ci.cancel();
+
+        if (this.doesGuiPauseGame) {
+            // Still waiting for stats data — show loading screen
+            this.drawDefaultBackground();
+            this.drawCenteredString(this.fontRendererObj,
+                    I18n.format("multiplayer.downloadingStats"),
+                    this.width / 2, this.height / 2, 16777215);
+            int idx = (int) (Minecraft.getSystemTime() / 150L
+                    % (long) MODERN_STATISTIC$LOADING_ANIM.length);
+            this.drawCenteredString(this.fontRendererObj,
+                    MODERN_STATISTIC$LOADING_ANIM[idx],
+                    this.width / 2,
+                    this.height / 2 + this.fontRendererObj.FONT_HEIGHT * 2, 16777215);
+            return;
+        }
+
+        // --- Tabbed layout ---
+
+        this.drawBackground(0);
+
+        // Top bar background
+        this.mc.getTextureManager().bindTexture(
+                new ResourceLocation("createworldui", "textures/gui/options_background_dark.png"));
+        modernStatistic$drawTiledTexture(0, 0, this.width,
+                MODERN_STATISTIC$TAB_HEIGHT - 2, 16, 16);
+
+        // Separator line below tabs (with gap under active tab)
+        int lineY = MODERN_STATISTIC$TAB_HEIGHT - 2;
+        int currentId = modernStatistic$currentTab != null
+                ? modernStatistic$currentTab.getTabId() : -1;
+
+        int btnW = Math.min(MODERN_STATISTIC$TAB_WIDTH, this.width / 3);
+        int totalW = btnW * 3;
+        int startX = this.width / 2 - totalW / 2;
+
+        // Find which tab index is active
+        int activeIdx = -1;
+        if (currentId == 100) activeIdx = 0;
+        else if (currentId == 101) activeIdx = 1;
+        else if (currentId == 102) activeIdx = 2;
+
+        // Panel background
+        int panelTop = MODERN_STATISTIC$TAB_HEIGHT;
+        int panelBottom = this.height - 35;
+        if (panelBottom > panelTop) {
+            ContentPanelRenderer.drawPanelBackground(0, panelTop,
+                    this.width, panelBottom - panelTop);
+        }
+
+        // Header separator (with gap under active tab)
+        if (activeIdx >= 0 && activeIdx < 3) {
+            int tabX = startX + activeIdx * btnW;
+            int tabEnd = tabX + btnW;
+            if (tabX > 0) {
+                ContentPanelRenderer.drawHeaderSeparator(0, lineY, tabX);
+            }
+            if (tabEnd < this.width) {
+                ContentPanelRenderer.drawHeaderSeparator(tabEnd, lineY,
+                        this.width - tabEnd);
+            }
+        } else {
+            ContentPanelRenderer.drawHeaderSeparator(0, lineY, this.width);
+        }
+        ContentPanelRenderer.drawFooterSeparator(0, this.height - 35, this.width);
+
+        // Draw current tab content
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.drawScreen(mouseX, mouseY, partialTicks);
+        }
+
+        // Title
+        this.drawCenteredString(this.fontRendererObj, this.field_146542_f,
+                this.width / 2, 20, 16777215);
+
+        // Draw all buttons (including tab buttons and Done)
+        for (Object obj : this.buttonList) {
+            if (obj instanceof GuiButton) {
+                GuiButton b = (GuiButton) obj;
+                if (b.visible) {
+                    b.drawButton(this.mc, mouseX, mouseY);
+                }
+            }
+        }
+
+        // Hover tooltips for tab buttons
+        modernStatistic$drawTabTooltips(mouseX, mouseY, btnW, startX);
+    }
+
+    @Unique
+    private void modernStatistic$drawTabTooltips(int mouseX, int mouseY,
+                                                  int btnW, int startX) {
+        if (mouseY < 0 || mouseY > MODERN_STATISTIC$TAB_HEIGHT) return;
+
+        int[] tabIds = {100, 101, 102};
+        for (int i = 0; i < tabIds.length; i++) {
+            int x = startX + i * btnW;
+            if (mouseX >= x && mouseX < x + btnW) {
+                String key = "stat.generalButton";
+                if (tabIds[i] == 101) key = "stat.itemsButton";
+                else if (tabIds[i] == 102) key = "stat.mobsButton";
+                String tip = I18n.format(key);
+                if (!tip.isEmpty()) {
+                    this.drawHoveringText(
+                            java.util.Arrays.asList(tip), mouseX, mouseY,
+                            this.fontRendererObj);
+                }
+                return;
+            }
+        }
+    }
+
+    // ==================== actionPerformed ====================
+
+    @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
+    private void modernStatistic$onActionPerformed(GuiButton button, CallbackInfo ci) {
+        if (!button.enabled) return;
+
+        if (button.id == 0) {
+            // Done
+            this.mc.displayGuiScreen(this.field_146549_a);
+            ci.cancel();
+            return;
+        }
+
+        // Tab switching
+        if (button.id == 100 || button.id == 101 || button.id == 102) {
+            modernStatistic$switchToTab(button.id);
+            ci.cancel();
+            return;
+        }
+
+        // Delegate to current tab
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.actionPerformed(button);
+        }
+        ci.cancel();
+    }
+
+    @Unique
+    private void modernStatistic$switchToTab(int tabId) {
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.setVisible(false);
+        }
+
+        switch (tabId) {
+            case 100: modernStatistic$currentTab = modernStatistic$tabGeneral; break;
+            case 101: modernStatistic$currentTab = modernStatistic$tabItems;   break;
+            case 102: modernStatistic$currentTab = modernStatistic$tabMobs;    break;
+        }
+
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.setVisible(true);
+        }
+    }
+
+    // ==================== mouse / key ====================
+
+    @Inject(method = "mouseClicked", at = @At("TAIL"))
+    private void modernStatistic$onMouseClicked(int mouseX, int mouseY, int mouseButton,
+                                                 CallbackInfo ci) {
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.mouseClicked(mouseX, mouseY, mouseButton);
+        }
+    }
+
+    @Inject(method = "keyTyped", at = @At("HEAD"), cancellable = true)
+    private void modernStatistic$onKeyTyped(char typedChar, int keyCode, CallbackInfo ci) {
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.keyTyped(typedChar, keyCode);
+        }
+
+        // ESC
+        if (keyCode == 1) {
+            this.mc.displayGuiScreen(this.field_146549_a);
+            ci.cancel();
+            return;
+        }
+        ci.cancel();
+    }
+
+    // ==================== Utility ====================
+
+    @Unique
+    @SuppressWarnings("unused")
+    private void modernStatistic$drawTiledTexture(int x, int y, int width, int height,
+                                                   int tileW, int tileH) {
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        net.minecraft.client.renderer.Tessellator tess =
+                net.minecraft.client.renderer.Tessellator.instance;
+        tess.startDrawingQuads();
+
+        for (int tx = 0; tx < width; tx += tileW) {
+            for (int ty = 0; ty < height; ty += tileH) {
+                int w = Math.min(tileW, width - tx);
+                int h = Math.min(tileH, height - ty);
+                double u2 = (double) w / (double) tileW;
+                double v2 = (double) h / (double) tileH;
+                tess.addVertexWithUV(x + tx,      y + ty + h,  0.0, 0.0, v2);
+                tess.addVertexWithUV(x + tx + w,  y + ty + h,  0.0, u2,  v2);
+                tess.addVertexWithUV(x + tx + w,  y + ty,      0.0, u2,  0.0);
+                tess.addVertexWithUV(x + tx,      y + ty,      0.0, 0.0, 0.0);
+            }
+        }
+
+        tess.draw();
+    }
+}

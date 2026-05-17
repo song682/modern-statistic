@@ -1,10 +1,15 @@
 package decok.dfcdvadstf.modernstatistic.tab;
 
+import decok.dfcdvadstf.createworldui.api.ContentPanelRenderer;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiSlot;
+import net.minecraft.client.gui.achievement.GuiStats;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.stats.StatBase;
+import net.minecraft.stats.StatFileWriter;
 import net.minecraft.stats.StatList;
+import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
@@ -21,9 +26,9 @@ public class StatsGeneralTab extends StatsTab {
     }
 
     @Override
-    public void initGui(net.minecraft.client.gui.achievement.GuiStats parent,
+    public void initGui(GuiStats parent,
                         int width, int height, List<GuiButton> buttonList,
-                        net.minecraft.stats.StatFileWriter writer) {
+                         StatFileWriter writer) {
         super.initGui(parent, width, height, buttonList, writer);
         this.slot = new GeneralSlot();
         this.slot.registerScrollButtons(1, 1);
@@ -51,8 +56,8 @@ public class StatsGeneralTab extends StatsTab {
     private class GeneralSlot extends GuiSlot {
 
         GeneralSlot() {
-            super(mc, parentScreen.width, parentScreen.height, 32,
-                  parentScreen.height - 64, 10);
+            super(mc, parentScreen.width, parentScreen.height, 22,
+                  parentScreen.height - 35, 10);
             setShowSelectionBox(false);
         }
 
@@ -76,8 +81,24 @@ public class StatsGeneralTab extends StatsTab {
         }
 
         @Override
+        protected void drawContainerBackground(Tessellator tessellator) {
+            mc.getTextureManager().bindTexture(Gui.optionsBackground);
+            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            float f1 = 32.0F;
+            int scrolled = getAmountScrolled();
+            tessellator.startDrawingQuads();
+            tessellator.setColorOpaque_I(4210752);
+            tessellator.addVertexWithUV((double)this.left, (double)this.bottom, 0.0D, (double)((float)this.left / f1), (double)((float)(this.bottom + scrolled) / f1));
+            tessellator.addVertexWithUV((double)this.right, (double)this.bottom, 0.0D, (double)((float)this.right / f1), (double)((float)(this.bottom + scrolled) / f1));
+            tessellator.addVertexWithUV((double)this.right, (double)this.top, 0.0D, (double)((float)this.right / f1), (double)((float)(this.top + scrolled) / f1));
+            tessellator.addVertexWithUV((double)this.left, (double)this.top, 0.0D, (double)((float)this.left / f1), (double)((float)(this.top + scrolled) / f1));
+            tessellator.draw();
+        }
+
+        @Override
         protected void drawBackground() {
-            parentScreen.drawDefaultBackground();
+            ContentPanelRenderer.drawPanelBackground(0, 24,
+                    parentScreen.width, parentScreen.height - 35);
         }
 
         @Override

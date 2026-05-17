@@ -3,9 +3,11 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.modernstatistic.refmap.json",
   "mixins": [
+    "MixinItemInWorldManager"
   ],
   "client": [
-    "MixinGuiStats"
+    "MixinGuiStats",
+    "MixinGuiSlot"
   ],
   "required": true,
   "minVersion": "0.7.11"

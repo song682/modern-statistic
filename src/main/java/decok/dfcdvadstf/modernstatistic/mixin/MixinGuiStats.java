@@ -7,8 +7,11 @@ import decok.dfcdvadstf.modernstatistic.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.tab.StatsMobsTab;
 import decok.dfcdvadstf.modernstatistic.tab.StatsTab;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiSlot;
+import net.minecraft.client.gui.IProgressMeter;
 import net.minecraft.client.gui.achievement.GuiStats;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.stats.StatFileWriter;
@@ -19,6 +22,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -40,7 +45,6 @@ public abstract class MixinGuiStats extends GuiScreen {
     // === Vanilla shadows ===
 
     @Shadow private GuiScreen field_146549_a;
-    @Shadow protected String field_146542_f;
     @Shadow private StatFileWriter field_146546_t;
     @Shadow private boolean doesGuiPauseGame;
 
@@ -56,13 +60,6 @@ public abstract class MixinGuiStats extends GuiScreen {
     @Unique private static final int MODERN_STATISTIC$TAB_WIDTH = 130;
     @Unique private static final int MODERN_STATISTIC$TAB_HEIGHT = 24;
 
-    @Unique
-    private static final String[] MODERN_STATISTIC$LOADING_ANIM = new String[] {
-            "▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄ ▃", "_ ▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄",
-            "_ _ ▃ ▄ ▅ ▆ ▇ ▆ ▅", "_ _ _ ▃ ▄ ▅ ▆ ▇ ▆",
-            "_ _ _ _ ▃ ▄ ▅ ▆ ▇", "_ _ _ ▃ ▄ ▅ ▆ ▇ ▆",
-            "_ _ ▃ ▄ ▅ ▆ ▇ ▆ ▅", "_ ▃ ▄ ▅ ▆ ▇ ▆ ▅ ▄"
-    };
 
     // ==================== Injections ====================
 
@@ -103,10 +100,10 @@ public abstract class MixinGuiStats extends GuiScreen {
 
     @Unique
     private void modernStatistic$setupButtons() {
-        // Done button
+        // Done button — centered, 280px wide
         this.buttonList.add(new GuiButton(0,
-                this.width / 2 + 4, this.height - 28,
-                150, 20, I18n.format("gui.done")));
+                this.width / 2 - 140, this.height - 28,
+                280, 20, I18n.format("gui.done")));
 
         // Create tab buttons at the top
         modernStatistic$createTabButtons();
@@ -171,85 +168,90 @@ public abstract class MixinGuiStats extends GuiScreen {
         }
     }
 
-    // ==================== drawScreen ====================
+    // ==================== drawScreen: bottom layer ====================
 
-    @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
-    public void modernStatistic$onDrawScreen(int mouseX, int mouseY, float partialTicks,
-                                              CallbackInfo ci) {
-        ci.cancel();
+    /** Draw the vanilla dark border/gradient as the bottommost layer. */
+    @Inject(method = "drawScreen", at = @At("HEAD"))
+    private void modernStatistic$drawDarkBorder(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        this.drawDefaultBackground();
+    }
 
-        if (this.doesGuiPauseGame) {
-            // Still waiting for stats data — show loading screen
-            this.drawDefaultBackground();
-            this.drawCenteredString(this.fontRendererObj,
-                    I18n.format("multiplayer.downloadingStats"),
-                    this.width / 2, this.height / 2, 16777215);
-            int idx = (int) (Minecraft.getSystemTime() / 150L
-                    % (long) MODERN_STATISTIC$LOADING_ANIM.length);
-            this.drawCenteredString(this.fontRendererObj,
-                    MODERN_STATISTIC$LOADING_ANIM[idx],
-                    this.width / 2,
-                    this.height / 2 + this.fontRendererObj.FONT_HEIGHT * 2, 16777215);
-            return;
+    // ==================== drawScreen redirects ====================
+
+    @Redirect(method = "drawScreen",
+              at = @At(value = "FIELD",
+                       target = "Lnet/minecraft/client/gui/IProgressMeter;field_146510_b_:[Ljava/lang/String;"),
+              slice = @Slice(
+                  from = @At(value = "FIELD", target = "Lnet/minecraft/client/gui/achievement/GuiStats;doesGuiPauseGame:Z"),
+                  to = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V")
+              ))
+    private String[] modernStatistic$redirectField146510_b() {
+        return IProgressMeter.field_146510_b_;
+    }
+
+    @Redirect(method = "drawScreen",
+              at = @At(value = "INVOKE",
+                       target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V"))
+    private void modernStatistic$drawTabContent(GuiSlot slot, int mouseX, int mouseY, float partialTicks) {
+        if (modernStatistic$currentTab != null) {
+            modernStatistic$currentTab.drawScreen(mouseX, mouseY, partialTicks);
         }
+    }
 
-        // --- Tabbed layout ---
+    @Redirect(method = "drawScreen",
+              at = @At(value = "INVOKE",
+                       target = "Lnet/minecraft/client/gui/achievement/GuiStats;drawCenteredString(Lnet/minecraft/client/gui/FontRenderer;Ljava/lang/String;III)V"),
+              slice = @Slice(
+                  from = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V"),
+                  to = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;drawScreen(IIF)V")
+              ))
+    private void modernStatistic$suppressTitle(GuiStats self, FontRenderer fontRenderer, String text, int x, int y, int color) {
+        // title removed in tabbed layout
+    }
 
-        this.drawBackground(0);
-
-        // Top bar background
+    @Redirect(method = "drawScreen",
+              at = @At(value = "INVOKE",
+                       target = "Lnet/minecraft/client/gui/GuiScreen;drawScreen(IIF)V"),
+              slice = @Slice(
+                  from = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V"),
+                  to = @At(value = "RETURN")
+              ))
+    private void modernStatistic$drawTopBarAndButtons(GuiScreen self, int mouseX, int mouseY, float partialTicks) {
+        // Top bar background behind tabs
         this.mc.getTextureManager().bindTexture(
                 new ResourceLocation("createworldui", "textures/gui/options_background_dark.png"));
         modernStatistic$drawTiledTexture(0, 0, this.width,
                 MODERN_STATISTIC$TAB_HEIGHT - 2, 16, 16);
 
-        // Separator line below tabs (with gap under active tab)
+        // Header separator — right below the tab row, gapped under selected tab
+        // (mirrors ModernCreateWorld: hidden under selected tab so it doesn't overlap the tab visuals)
         int lineY = MODERN_STATISTIC$TAB_HEIGHT - 2;
-        int currentId = modernStatistic$currentTab != null
-                ? modernStatistic$currentTab.getTabId() : -1;
+        int currentTabId = modernStatistic$currentTab != null ? modernStatistic$currentTab.getTabId() : -1;
+        int[] tabOrder = {100, 101, 102};
+        int tabIndex = -1;
+        for (int ti = 0; ti < tabOrder.length; ti++) {
+            if (tabOrder[ti] == currentTabId) { tabIndex = ti; break; }
+        }
 
         int btnW = Math.min(MODERN_STATISTIC$TAB_WIDTH, this.width / 3);
         int totalW = btnW * 3;
         int startX = this.width / 2 - totalW / 2;
 
-        // Find which tab index is active
-        int activeIdx = -1;
-        if (currentId == 100) activeIdx = 0;
-        else if (currentId == 101) activeIdx = 1;
-        else if (currentId == 102) activeIdx = 2;
-
-        // Panel background
-        int panelTop = MODERN_STATISTIC$TAB_HEIGHT;
-        int panelBottom = this.height - 35;
-        if (panelBottom > panelTop) {
-            ContentPanelRenderer.drawPanelBackground(0, panelTop,
-                    this.width, panelBottom - panelTop);
-        }
-
-        // Header separator (with gap under active tab)
-        if (activeIdx >= 0 && activeIdx < 3) {
-            int tabX = startX + activeIdx * btnW;
-            int tabEnd = tabX + btnW;
-            if (tabX > 0) {
-                ContentPanelRenderer.drawHeaderSeparator(0, lineY, tabX);
+        if (tabIndex >= 0 && tabIndex < 3) {
+            int selectedTabX = startX + tabIndex * btnW;
+            int selectedTabEnd = selectedTabX + btnW;
+            if (selectedTabX > 0) {
+                ContentPanelRenderer.drawHeaderSeparator(0, lineY, selectedTabX);
             }
-            if (tabEnd < this.width) {
-                ContentPanelRenderer.drawHeaderSeparator(tabEnd, lineY,
-                        this.width - tabEnd);
+            if (selectedTabEnd < this.width) {
+                ContentPanelRenderer.drawHeaderSeparator(selectedTabEnd, lineY, this.width - selectedTabEnd);
             }
         } else {
             ContentPanelRenderer.drawHeaderSeparator(0, lineY, this.width);
         }
+
+        // Footer separator — above the bottom bar
         ContentPanelRenderer.drawFooterSeparator(0, this.height - 35, this.width);
-
-        // Draw current tab content
-        if (modernStatistic$currentTab != null) {
-            modernStatistic$currentTab.drawScreen(mouseX, mouseY, partialTicks);
-        }
-
-        // Title
-        this.drawCenteredString(this.fontRendererObj, this.field_146542_f,
-                this.width / 2, 20, 16777215);
 
         // Draw all buttons (including tab buttons and Done)
         for (Object obj : this.buttonList) {

@@ -25,6 +25,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -48,13 +49,14 @@ public class StatsItemsTab extends StatsTab {
             new ResourceLocation("modernstatistic","textures/gui/stats_modern_icon.png");
     private static final RenderItem RENDER_ITEM = new RenderItem();
 
-    // Column icon UVs matching vanilla GuiStats stats_icons.png (128x128, f=0.0078125)
-    // Col 0 (BLOCK_MINED):  u=72,v=18  — StatsBlock col 0 (L732-L762)
-    // Col 1 (ITEM_BROKEN): u=18,v=18  — StatsItem col 0 (L535-L569)
-    // Col 2 (ITEM_CRAFTED):u=36,v=18  — StatsItem col 1
-    // Col 3 (ITEM_USED):   u=54,v=18  — StatsItem col 2
+    // Column icon UVs matching vanilla stats_icons.png (128x128, f=0.0078125)
+    // Row v=18: CRAFT(u=18) | USED(u=36) | MINED(u=54) | BROKE(u=72)
+    // Col 0 (ITEM_MINED):  u=54,v=18  — StatsBlock col 0
+    // Col 1 (ITEM_BROKEN): u=72,v=18  — StatsItem col 0
+    // Col 2 (ITEM_CRAFTED):u=18,v=18  — StatsItem col 1
+    // Col 3 (ITEM_USED):   u=36,v=18  — StatsItem col 2
     // Col 4-5: stats_modern_icon.png (PICKUP u=0, DROP u=18)
-    private static final int[] COLUMN_ICON_U = {72, 18, 36, 54, 0, 18};
+    private static final int[] COLUMN_ICON_U = {54, 72, 18, 36, 0, 18};
     private static final int[] COLUMN_ICON_V = {18, 18, 18, 18, 0, 18};
     private static final boolean[] COLUMN_USE_MODERN = {false, false, false, false, true, true};
 
@@ -243,9 +245,10 @@ public class StatsItemsTab extends StatsTab {
             if (!Mouse.isButtonDown(0)) {
                 hoveredHeader = -1;
             }
+            int contentX = (this.width - this.getListWidth()) / 2;
 
             for (int col = 0; col < 6; col++) {
-                int colX = x + getColumnX(col);
+                int colX = contentX + getColumnX(col);
                 boolean isHovered = hoveredHeader == col;
                 boolean isModern = COLUMN_USE_MODERN[col];
 
@@ -263,10 +266,10 @@ public class StatsItemsTab extends StatsTab {
                 }
             }
 
-            // 3. Sort direction arrow (stats_icons.png: u=0,v=36=descending, u=18,v=36=ascending)
+            // 3. Sort direction arrow (stats_icons.png row v=0: ARROW_UP(u=18) | ARROW_DOWN(u=36))
             if (sortColumn >= 0 && sortColumn < 6) {
-                int arrowU = (sortDirection == 1) ? 18 : 0;
-                drawSprite(x + getColumnX(sortColumn) - 36, y + 1, arrowU, 36);
+                int arrowU = (sortDirection == 1) ? 36 : 18;
+                drawSprite(contentX + getColumnX(sortColumn) - 36, y + 1, arrowU, 0);
             }
         }
 
@@ -274,8 +277,10 @@ public class StatsItemsTab extends StatsTab {
         protected void func_148132_a(int mouseX, int mouseY) {
             hoveredHeader = -1;
 
-            if (mouseY >= top && mouseY <= top + 20) {
-                // mouseX is relative to this.left (GuiSlot subtracts left before calling)
+            // mouseY is already transformed by GuiSlot: screenY - top + amountScrolled - 4
+            // Header is drawn at y=0 in these coordinates (height=20), rows start at y=20
+            if (mouseY >= 0 && mouseY <= 20) {
+                // mouseX is relative to k1 = (width - listWidth) / 2  (GuiSlot subtracts it before calling)
                 for (int col = 0; col < 6; col++) {
                     int colLeft = getColumnX(col) - 18;
                     int colRight = getColumnX(col);
@@ -306,8 +311,9 @@ public class StatsItemsTab extends StatsTab {
 
         @Override
         public int getListWidth() {
-            // Content width: from icon (x+40) to rightmost column center + 18
-            return getColumnX(5) + 18 - 40 + 4;
+            // Clickable area: from contentX (0 relative) to rightmost column center + 18 (icon half)
+            // Must be >= getColumnX(5)=275 for column 5 clicks to register
+            return getColumnX(5) + 18 + 4;
         }
 
         private void sortByColumn(int column) {
@@ -351,30 +357,31 @@ public class StatsItemsTab extends StatsTab {
         protected void drawSlot(int index, int x, int y, int slotHeight,
                                  Tessellator tess, int mouseX, int mouseY) {
             MergedEntry entry = entries.get(index);
-            drawItemIcon(x + 40, y, entry.item, entry.damage);
+            int contentX = (this.width - this.getListWidth()) / 2;
+            drawItemIcon(contentX + 40, y, entry.item, entry.damage);
             int id = entry.itemId;
             boolean even = index % 2 == 0;
 
             // Col 0: BLOCK_MINED — blocks only
             if (entry.isBlock && StatList.mineBlockStatArray[id] != null) {
-                drawStat(StatList.mineBlockStatArray[id], x + getColumnX(0), y, even);
+                drawStat(StatList.mineBlockStatArray[id], contentX + getColumnX(0), y, even);
             } else {
-                drawStat(null, x + getColumnX(0), y, even);
+                drawStat(null, contentX + getColumnX(0), y, even);
             }
             // Col 1: ITEM_BROKEN — damageable items only
             if (!entry.isBlock && StatList.objectBreakStats[id] != null) {
-                drawStat(StatList.objectBreakStats[id], x + getColumnX(1), y, even);
+                drawStat(StatList.objectBreakStats[id], contentX + getColumnX(1), y, even);
             } else {
-                drawStat(null, x + getColumnX(1), y, even);
+                drawStat(null, contentX + getColumnX(1), y, even);
             }
             // Col 2: ITEM_CRAFTED
-            drawStat(StatList.objectCraftStats[id], x + getColumnX(2), y, even);
+            drawStat(StatList.objectCraftStats[id], contentX + getColumnX(2), y, even);
             // Col 3: ITEM_USED
-            drawStat(StatList.objectUseStats[id], x + getColumnX(3), y, even);
+            drawStat(StatList.objectUseStats[id], contentX + getColumnX(3), y, even);
             // Col 4: ITEM_PICKED_UP
-            drawPickupStat(id, x + getColumnX(4), y, even);
+            drawPickupStat(id, contentX + getColumnX(4), y, even);
             // Col 5: ITEM_DROPPED
-            drawDropStat(id, x + getColumnX(5), y, even);
+            drawDropStat(id, contentX + getColumnX(5), y, even);
         }
 
         // ---- Tooltip ----
@@ -384,45 +391,77 @@ public class StatsItemsTab extends StatsTab {
             if (mouseY < top || mouseY > bottom) return;
 
             int index = func_148124_c(mouseX, mouseY);
-            int slotLeft = this.left;
+            // contentX = the actual x passed to drawSlot / drawListHeader
+            int contentX = (this.width - this.getListWidth()) / 2;
 
+            // Item icon tooltip
             if (index >= 0) {
-                if (mouseX >= slotLeft + 40 && mouseX <= slotLeft + 40 + 20) {
+                if (mouseX >= contentX + 40 && mouseX <= contentX + 40 + 20) {
                     MergedEntry entry = entries.get(index);
                     String name = ("" + I18n.format(
                             entry.item.getUnlocalizedName() + ".name")).trim();
                     if (!name.isEmpty()) {
-                        int tx = mouseX + 12;
-                        int ty = mouseY - 12;
-                        int tw = mc.fontRenderer.getStringWidth(name);
-                        Gui.drawRect(tx - 3, ty - 3,
-                                tx + tw + 3, ty + 8 + 3, 0xC0000000);
-                        mc.fontRenderer.drawStringWithShadow(name, tx, ty, -1);
+                        drawHoverTooltip(Arrays.asList(name), mouseX, mouseY);
                     }
                     return;
                 }
             }
 
-            // Header tooltips
+            // Header icon tooltips (6 columns)
             if (index < 0) {
-                String[] tips = {"stat.mined", "stat.broken", "stat.crafted",
+                String[] tips = {"stat.mined", "stat.depleted", "stat.crafted",
                         "stat.used", "stat.pickup", "stat.drop"};
                 for (int col = 0; col < 6; col++) {
-                    int colLeft = slotLeft + getColumnX(col) - 18;
-                    int colRight = slotLeft + getColumnX(col);
+                    int colLeft = contentX + getColumnX(col) - 18;
+                    int colRight = contentX + getColumnX(col);
                     if (mouseX >= colLeft && mouseX <= colRight) {
                         String tip = ("" + I18n.format(tips[col])).trim();
                         if (!tip.isEmpty()) {
-                            int tx = mouseX + 12;
-                            int ty = mouseY - 12;
-                            int tw = mc.fontRenderer.getStringWidth(tip);
-                            Gui.drawRect(tx - 3, ty - 3,
-                                    tx + tw + 3, ty + 8 + 3, 0xC0000000);
-                            mc.fontRenderer.drawStringWithShadow(tip, tx, ty, -1);
+                            drawHoverTooltip(Arrays.asList(tip), mouseX, mouseY);
                         }
                         return;
                     }
                 }
+            }
+        }
+
+        /**
+         * Draws a vanilla-style blue-bordered tooltip.
+         * Replicates {@code GuiScreen.drawHoveringText} which is protected
+         * and therefore inaccessible from our package.
+         */
+        private void drawHoverTooltip(List<String> lines, int x, int y) {
+            if (lines.isEmpty()) return;
+
+            int maxWidth = 0;
+            for (String s : lines) {
+                int w = mc.fontRenderer.getStringWidth(s);
+                if (w > maxWidth) maxWidth = w;
+            }
+            int height = lines.size() * 10 - 2;
+
+            int tx = x + 12;
+            int ty = y - 12;
+            if (tx + maxWidth > this.width) {
+                tx -= 28 + maxWidth;
+            }
+            if (ty + height + 6 > this.height) {
+                ty = this.height - height - 6;
+            }
+
+            // Background
+            Gui.drawRect(tx - 3, ty - 4, tx + maxWidth + 3, ty - 3, 0x505000FF); // top border
+            Gui.drawRect(tx - 3, ty + height + 3, tx + maxWidth + 3, ty + height + 4, 0x5028007F); // bottom border
+            Gui.drawRect(tx - 3, ty - 3, tx + maxWidth + 3, ty + height + 3, 0xF0100010); // fill
+            Gui.drawRect(tx - 4, ty - 3, tx - 3, ty + height + 3, 0x505000FF); // left border
+            Gui.drawRect(tx + maxWidth + 3, ty - 3, tx + maxWidth + 4, ty + height + 3, 0x5028007F); // right border
+            // Gradient top edge
+            Gui.drawRect(tx - 3, ty - 3 + 1, tx - 3 + 1, ty + height + 3 - 1, 0x5028007F);
+            Gui.drawRect(tx + maxWidth + 2, ty - 3 + 1, tx + maxWidth + 3, ty + height + 3 - 1, 0x5028007F);
+
+            // Text
+            for (int i = 0; i < lines.size(); i++) {
+                mc.fontRenderer.drawStringWithShadow(lines.get(i), tx, ty + i * 10, -1);
             }
         }
 

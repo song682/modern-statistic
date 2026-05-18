@@ -1,2 +1,18 @@
 stat.pickup=拾取个数
 stat.drop=丢弃个数
+
+# BetterStats 风格 Paneled 模式翻译键
+betterstats.gui.filters=过滤
+betterstats.gui.show_empty_stats=显示空的统计数据
+betterstats.gui.no_stats_yet=目前还没有统计数据显示...
+betterstats.gui.menu_bar.view=查看
+betterstats.gui.menu_bar.view.vanilla_stats=显示原版统计数据
+betterstats.gui.menu_bar.about=关于
+betterstats.gui.menu_bar.about.source=源代码
+betterstats.tab.balanced_diet=均衡饮食
+betterstats.tab.monster_hunter=怪物猎人
+
+# 关于界面
+modernstatistic.about.title=ModernStatistic
+modernstatistic.about.credit_link=Credit Link
+modernstatistic.about.source_code=源代码

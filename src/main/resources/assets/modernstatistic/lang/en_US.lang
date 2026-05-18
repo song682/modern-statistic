@@ -1,2 +1,18 @@
 stat.pickup=Picked Up
 stat.drop=Dropped
+
+# BetterStats-style Paneled mode keys
+betterstats.gui.filters=Filters
+betterstats.gui.show_empty_stats=Show empty stats
+betterstats.gui.no_stats_yet=There are no stats to show yet...
+betterstats.gui.menu_bar.view=View
+betterstats.gui.menu_bar.view.vanilla_stats=Show vanilla stats
+betterstats.gui.menu_bar.about=About
+betterstats.gui.menu_bar.about.source=Source Code
+betterstats.tab.balanced_diet=Balanced Diet
+betterstats.tab.monster_hunter=Monster Hunter
+
+# About screen
+modernstatistic.about.title=ModernStatistic
+modernstatistic.about.credit_link=Credit Link
+modernstatistic.about.source_code=Source Code

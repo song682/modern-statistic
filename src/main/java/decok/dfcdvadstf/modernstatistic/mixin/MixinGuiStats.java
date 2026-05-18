@@ -2,6 +2,8 @@ package decok.dfcdvadstf.modernstatistic.mixin;
 
 import decok.dfcdvadstf.createworldui.api.ContentPanelRenderer;
 import decok.dfcdvadstf.createworldui.api.tab.TabState;
+import decok.dfcdvadstf.modernstatistic.ModernStatistic;
+import decok.dfcdvadstf.modernstatistic.gui.screen.TBetterStatsScreen;
 import decok.dfcdvadstf.modernstatistic.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.tab.StatsMobsTab;
@@ -71,8 +73,19 @@ public abstract class MixinGuiStats extends GuiScreen {
     private void modernStatistic$onStatsReady(CallbackInfo ci) {
         if (!this.doesGuiPauseGame) return;
 
+        // VANILLA mode: do nothing, let vanilla handle everything
+        if (ModernStatistic.config.isVanillaMode()) return;
+
         ci.cancel();
 
+        // PANELED mode: switch to BetterStats-style screen
+        if (ModernStatistic.config.isPaneledMode()) {
+            this.mc.displayGuiScreen(
+                new TBetterStatsScreen(this.field_146549_a, this.field_146546_t));
+            return;
+        }
+
+        // TABBED mode: existing logic follows
         // Create tabs
         modernStatistic$tabGeneral = new StatsGeneralTab();
         modernStatistic$tabItems = new StatsItemsTab();
@@ -173,6 +186,9 @@ public abstract class MixinGuiStats extends GuiScreen {
     /** Draw the vanilla dark border/gradient as the bottommost layer. */
     @Inject(method = "drawScreen", at = @At("HEAD"))
     private void modernStatistic$drawDarkBorder(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        // PANELED mode: TBetterStatsScreen handles its own rendering
+        // VANILLA mode: vanilla handles its own rendering
+        if (ModernStatistic.config.isPaneledMode() || ModernStatistic.config.isVanillaMode()) return;
         this.drawDefaultBackground();
     }
 
@@ -186,6 +202,7 @@ public abstract class MixinGuiStats extends GuiScreen {
                   to = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V")
               ))
     private String[] modernStatistic$redirectField146510_b() {
+        // VANILLA mode: return original field value for vanilla path
         return IProgressMeter.field_146510_b_;
     }
 
@@ -193,6 +210,13 @@ public abstract class MixinGuiStats extends GuiScreen {
               at = @At(value = "INVOKE",
                        target = "Lnet/minecraft/client/gui/GuiSlot;drawScreen(IIF)V"))
     private void modernStatistic$drawTabContent(GuiSlot slot, int mouseX, int mouseY, float partialTicks) {
+        // PANELED mode: no-op, TBetterStatsScreen handles rendering
+        if (ModernStatistic.config.isPaneledMode()) return;
+        // VANILLA mode: call original vanilla drawScreen
+        if (ModernStatistic.config.isVanillaMode()) {
+            slot.drawScreen(mouseX, mouseY, partialTicks);
+            return;
+        }
         if (modernStatistic$currentTab != null) {
             modernStatistic$currentTab.drawScreen(mouseX, mouseY, partialTicks);
         }
@@ -206,6 +230,13 @@ public abstract class MixinGuiStats extends GuiScreen {
                   to = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;drawScreen(IIF)V")
               ))
     private void modernStatistic$suppressTitle(GuiStats self, FontRenderer fontRenderer, String text, int x, int y, int color) {
+        // PANELED mode: no-op
+        if (ModernStatistic.config.isPaneledMode()) return;
+        // VANILLA mode: draw original vanilla title
+        if (ModernStatistic.config.isVanillaMode()) {
+            self.drawCenteredString(fontRenderer, text, x, y, color);
+            return;
+        }
         // title removed in tabbed layout
     }
 
@@ -217,6 +248,18 @@ public abstract class MixinGuiStats extends GuiScreen {
                   to = @At(value = "RETURN")
               ))
     private void modernStatistic$drawTopBarAndButtons(GuiScreen self, int mouseX, int mouseY, float partialTicks) {
+        // PANELED mode: no-op, TBetterStatsScreen handles rendering
+        if (ModernStatistic.config.isPaneledMode()) return;
+        // VANILLA mode: manually draw buttons (calling self.drawScreen would recurse via polymorphic dispatch)
+        if (ModernStatistic.config.isVanillaMode()) {
+            for (Object obj : this.buttonList) {
+                if (obj instanceof GuiButton) {
+                    GuiButton b = (GuiButton) obj;
+                    if (b.visible) b.drawButton(this.mc, mouseX, mouseY);
+                }
+            }
+            return;
+        }
         // Top bar background behind tabs
         this.mc.getTextureManager().bindTexture(
                 new ResourceLocation("createworldui", "textures/gui/options_background_dark.png"));
@@ -294,6 +337,9 @@ public abstract class MixinGuiStats extends GuiScreen {
 
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
     private void modernStatistic$onActionPerformed(GuiButton button, CallbackInfo ci) {
+        // PANELED mode: no-op, TBetterStatsScreen handles input
+        // VANILLA mode: no-op, vanilla handles button actions
+        if (ModernStatistic.config.isPaneledMode() || ModernStatistic.config.isVanillaMode()) return;
         if (!button.enabled) return;
 
         if (button.id == 0) {
@@ -339,6 +385,9 @@ public abstract class MixinGuiStats extends GuiScreen {
     @Inject(method = "mouseClicked", at = @At("TAIL"))
     private void modernStatistic$onMouseClicked(int mouseX, int mouseY, int mouseButton,
                                                  CallbackInfo ci) {
+        // PANELED mode: no-op, TBetterStatsScreen handles input
+        // VANILLA mode: no-op, vanilla handles mouse input
+        if (ModernStatistic.config.isPaneledMode() || ModernStatistic.config.isVanillaMode()) return;
         if (modernStatistic$currentTab != null) {
             modernStatistic$currentTab.mouseClicked(mouseX, mouseY, mouseButton);
         }
@@ -346,6 +395,9 @@ public abstract class MixinGuiStats extends GuiScreen {
 
     @Inject(method = "keyTyped", at = @At("HEAD"), cancellable = true)
     private void modernStatistic$onKeyTyped(char typedChar, int keyCode, CallbackInfo ci) {
+        // PANELED mode: no-op, TBetterStatsScreen handles input
+        // VANILLA mode: no-op, vanilla handles key input
+        if (ModernStatistic.config.isPaneledMode() || ModernStatistic.config.isVanillaMode()) return;
         if (modernStatistic$currentTab != null) {
             modernStatistic$currentTab.keyTyped(typedChar, keyCode);
         }

@@ -79,15 +79,6 @@ public class TPanelElement extends TElement {
         }
         
         totalContentHeight = Math.max(height, maxY + scrollPadding);
-        
-        // DEBUG: Only log for BSPanel (the right content panel)
-        if (getClass().getSimpleName().equals("BSPanel") && children.size() > 0) {
-            System.out.println("[TPanelElement] updateContentHeight: " + getClass().getSimpleName() + 
-                    ", children=" + children.size() + ", maxY=" + maxY + 
-                    ", totalContentHeight=" + totalContentHeight + 
-                    ", panelHeight=" + height + 
-                    ", maxScroll=" + getMaxScrollY());
-        }
     }
 
     /**
@@ -167,19 +158,11 @@ public class TPanelElement extends TElement {
             if (Math.abs(targetScrollY - scrollY) < 0.1) scrollY = targetScrollY;
         }
 
-        // DEBUG: Print panel render info
-        System.out.println("[TPanelElement] Rendering: " + getClass().getSimpleName() +
-                ", pos=(" + x + "," + y + "), size=(" + width + "x" + height + ")" +
-                ", scrollPadding=" + scrollPadding + ", children=" + children.size());
-
         // Scissor to viewport
         int scissorX = x + scrollPadding;
         int scissorY = y + scrollPadding;
         int scissorW = width - scrollPadding * 2;
         int scissorH = height - scrollPadding * 2;
-        
-        System.out.println("[TPanelElement] Scissor: (" + scissorX + "," + scissorY + ") size=(" + scissorW + "x" + scissorH + ")");
-        
         enableScissor(scissorX, scissorY, scissorW, scissorH);
 
         // Translate children

@@ -92,28 +92,20 @@ public class TScrollBarWidget extends TElement {
 
     @Override
     protected boolean onMouseClicked(int mouseX, int mouseY, int button) {
-        System.out.println("[ScrollBar] onMouseClicked: button=" + button + ", pos=(" + mouseX + "," + mouseY + 
-                "), scrollbar bounds=(" + x + "," + y + ")-(" + getEndX() + "," + getEndY() + ")");
-        
         if (button != 0) return false;
 
         int knobY = getKnobY();
         int knobH = getKnobHeight();
-        
-        System.out.println("[ScrollBar] Knob: y=" + knobY + ", h=" + knobH);
 
         if (mouseY >= knobY && mouseY < knobY + knobH) {
             // Clicked on knob — start dragging
-            System.out.println("[ScrollBar] Clicked on KNOB - starting drag");
             dragging = true;
             dragStartY = mouseY;
             dragStartValue = getValue();
             return true;
         } else {
             // Clicked on track — jump scroll
-            System.out.println("[ScrollBar] Clicked on TRACK - jump scroll");
             double maxScroll = target != null ? target.getMaxScrollY() : 0;
-            System.out.println("[ScrollBar] Target maxScroll=" + maxScroll);
             if (maxScroll <= 0) return true;
             double clickRatio = (double) (mouseY - y) / height;
             setValue(clickRatio * maxScroll);

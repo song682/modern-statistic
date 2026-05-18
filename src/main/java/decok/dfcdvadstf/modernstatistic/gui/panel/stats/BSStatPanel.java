@@ -15,37 +15,41 @@ public abstract class BSStatPanel extends BSPanel {
     public static final int COLOR_GOLD_FOCUSED = 0xFFFFFF00;
 
     protected final TBetterStatsScreen screen;
-    protected final TScrollBarWidget scrollBar;
 
     public BSStatPanel(BSPanel parentToFill, TBetterStatsScreen screen) {
         this(parentToFill.getX(), parentToFill.getY(),
                 parentToFill.getWidth(), parentToFill.getHeight(), screen);
-        // Add self to parent (scrollbar now managed by parent)
+        // Add self to parent (scrollbar added via onParentChanged)
         parentToFill.addChild(this, false);
     }
 
     public BSStatPanel(int x, int y, int width, int height, TBetterStatsScreen screen) {
-        super(x, y, width, height); // Full width, no scrollbar space needed
+        super(x, y, width - 8, height); // Reduce width by 8 for scrollbar (mirrors original BetterStats)
         this.screen = screen;
         setScrollPadding(10);
         setSmoothScroll(true);
 
-        // No internal scrollbar - parent panel (panelRightMenu) handles scrolling
-        this.scrollBar = null;
+        // Internal scrollbar — target is THIS panel (mirrors original BetterStats)
+        // Use inherited TPanelElement.scrollBar field, NOT a shadow field
+        this.scrollBar = new TScrollBarWidget(getEndX(), getY(), 8, getHeight(), this);
     }
 
-    public TScrollBarWidget getVerticalScrollBar() { 
-        // Return parent's scrollbar if available
-        if (scrollBar != null) return scrollBar;
-        if (getParent() instanceof BSPanel) {
-            BSPanel parent = (BSPanel) getParent();
-            if (parent.getParent() instanceof decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics) {
-                decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics statsPanel = 
-                    (decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics) parent.getParent();
-                return statsPanel.getScrollRight();
-            }
+    @Override
+    public void onParentChanged() {
+        super.onParentChanged();
+        // Remove scrollbar from previous parent
+        if (this.scrollBar.getParent() != null && this.scrollBar.getParent() != getParent()) {
+            this.scrollBar.getParent().removeChild(this.scrollBar);
         }
-        return null;
+        // Add scrollbar to new parent (same level as this panel, avoids scissor clipping)
+        if (getParent() != null) {
+            getParent().addChild(this.scrollBar, false);
+            this.scrollBar.refreshKnobSize();
+        }
+    }
+
+    public TScrollBarWidget getVerticalScrollBar() {
+        return this.scrollBar;
     }
 
     // ==================== Abstract ====================

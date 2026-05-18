@@ -48,6 +48,49 @@ public class TPanelElement extends TElement {
     }
 
     /**
+     * Update totalContentHeight by finding the bottom-most child.
+     */
+    protected void updateContentHeight() {
+        if (children.isEmpty()) {
+            totalContentHeight = height;
+            return;
+        }
+        
+        int maxY = 0;
+        for (TElement child : children) {
+            if (child.isVisible()) {
+                int childBottom;
+                
+                // If child is also a panel with content, use its totalContentHeight
+                if (child instanceof TPanelElement) {
+                    TPanelElement childPanel = (TPanelElement) child;
+                    // childPanel.totalContentHeight is relative to childPanel itself
+                    // So we need: (childPanel.y - this.y) + childPanel.totalContentHeight
+                    childBottom = (child.y - this.y) + (int)childPanel.totalContentHeight;
+                } else {
+                    // Regular element: just use its bottom Y
+                    childBottom = child.getEndY() - y;
+                }
+                
+                if (childBottom > maxY) {
+                    maxY = childBottom;
+                }
+            }
+        }
+        
+        totalContentHeight = Math.max(height, maxY + scrollPadding);
+        
+        // DEBUG: Only log for BSPanel (the right content panel)
+        if (getClass().getSimpleName().equals("BSPanel") && children.size() > 0) {
+            System.out.println("[TPanelElement] updateContentHeight: " + getClass().getSimpleName() + 
+                    ", children=" + children.size() + ", maxY=" + maxY + 
+                    ", totalContentHeight=" + totalContentHeight + 
+                    ", panelHeight=" + height + 
+                    ", maxScroll=" + getMaxScrollY());
+        }
+    }
+
+    /**
      * The Y offset applied to children when rendering.
      * In Paneled mode, this is the negated scroll amount.
      */
@@ -101,11 +144,12 @@ public class TPanelElement extends TElement {
 
         // Scroll this panel if mouse is within bounds
         if (mouseX >= x && mouseX < getEndX() && mouseY >= y && mouseY < getEndY()) {
-            int scrollAmount = Integer.signum(delta) * 15;
-            scrollY = Math.max(0, Math.min(scrollY + scrollAmount, getMaxScrollY()));
-            targetScrollY = scrollY;
-            if (scrollBar != null) scrollBar.setValue(scrollY);
-            return true;
+            if (delta != 0) {
+                scrollY = Math.max(0, Math.min(scrollY - Integer.signum(delta) * 15, getMaxScrollY()));
+                targetScrollY = scrollY;
+                if (scrollBar != null) scrollBar.setValue(scrollY);
+                return true;
+            }
         }
         return false;
     }
@@ -114,15 +158,29 @@ public class TPanelElement extends TElement {
 
     @Override
     protected void renderSelf(int mouseX, int mouseY, float partialTicks) {
+        // Update totalContentHeight based on children
+        updateContentHeight();
+        
         // Apply smooth scroll
         if (smoothScroll && Math.abs(targetScrollY - scrollY) > 0.01) {
             scrollY += (targetScrollY - scrollY) * 0.3;
             if (Math.abs(targetScrollY - scrollY) < 0.1) scrollY = targetScrollY;
         }
 
+        // DEBUG: Print panel render info
+        System.out.println("[TPanelElement] Rendering: " + getClass().getSimpleName() +
+                ", pos=(" + x + "," + y + "), size=(" + width + "x" + height + ")" +
+                ", scrollPadding=" + scrollPadding + ", children=" + children.size());
+
         // Scissor to viewport
-        enableScissor(x + scrollPadding, y + scrollPadding,
-                width - scrollPadding * 2, height - scrollPadding * 2);
+        int scissorX = x + scrollPadding;
+        int scissorY = y + scrollPadding;
+        int scissorW = width - scrollPadding * 2;
+        int scissorH = height - scrollPadding * 2;
+        
+        System.out.println("[TPanelElement] Scissor: (" + scissorX + "," + scissorY + ") size=(" + scissorW + "x" + scissorH + ")");
+        
+        enableScissor(scissorX, scissorY, scissorW, scissorH);
 
         // Translate children
         GL11.glPushMatrix();
@@ -137,7 +195,7 @@ public class TPanelElement extends TElement {
         disableScissor();
 
         // Render outline
-        drawOutline(x, y, getEndX(), getEndY(), 0xFF000000);
+        drawOutline(x, y, getEndX(), getEndY(), 0x80000000);
     }
 
     // ==================== Child Management ====================

@@ -22,6 +22,7 @@ public class BSPanel_Statistics extends BSPanel {
     protected BSPanel_StatisticsFilters panelLeftMenu;
     protected BSPanel panelRightMenu;
     protected TScrollBarWidget scrollLeft;
+    protected TScrollBarWidget scrollRight;
 
     public BSPanel_Statistics(int x, int y, int width, int height, TBetterStatsScreen screen) {
         super(x, y, width, height);
@@ -29,6 +30,10 @@ public class BSPanel_Statistics extends BSPanel {
         setVisible(false);
         setScrollPadding(0);
     }
+
+    public TScrollBarWidget getScrollLeft() { return scrollLeft; }
+    
+    public TScrollBarWidget getScrollRight() { return scrollRight; }
 
     public void init(TBetterStatsScreen bss) {
         clearChildren();
@@ -42,6 +47,10 @@ public class BSPanel_Statistics extends BSPanel {
         int scpW = width - scpX - 10;
         int scpH = mcpH;
 
+        System.out.println("[BSPanel_Statistics] Layout calculation:");
+        System.out.println("  Left menu: (" + mcpX + "," + mcpY + ") size=(" + mcpW + "x" + mcpH + ")");
+        System.out.println("  Right content: (" + scpX + "," + scpY + ") size=(" + scpW + "x" + scpH + ")");
+
         // --- Menu bar ---
         panelMenuBar = new BSPanel_StatisticsMenuBar(
                 mcpX, 4, Math.abs(mcpX - (scpX + scpW)), MENU_BAR_HEIGHT, screen);
@@ -53,16 +62,31 @@ public class BSPanel_Statistics extends BSPanel {
         panelLeftMenu.init();
         addChild(panelLeftMenu, false);
 
-        // --- Right content area ---
-        panelRightMenu = new BSPanel(scpX + 4, scpY, scpW - 4, scpH);
+        // --- Right content area (make it scrollable) ---
+        // Leave 8px space for scrollbar on the right
+        panelRightMenu = new BSPanel(scpX + 4, scpY, scpW - 8 - 4, scpH);
         panelRightMenu.setScrollPadding(0);
         addChild(panelRightMenu, false);
+        
+        System.out.println("[BSPanel_Statistics] panelRightMenu: (" + panelRightMenu.getX() + "," + panelRightMenu.getY() + 
+                ") size=(" + panelRightMenu.getWidth() + "x" + panelRightMenu.getHeight() + ")");
 
         // --- Scrollbar for left sidebar ---
-        scrollLeft = new TScrollBarWidget(
-                panelLeftMenu.getEndX() - 1, panelLeftMenu.getY(),
-                8, panelLeftMenu.getHeight(), panelLeftMenu);
-        addChild(scrollLeft, false);
+        // Left sidebar should NOT scroll (it's fixed filters)
+        // Remove scrollLeft entirely - no scrollbar needed for left panel
+        // scrollLeft = new TScrollBarWidget(...);  // REMOVED
+        scrollLeft = null;  // No scrollbar for left panel
+
+        // --- Scrollbar for right content area ---
+        // IMPORTANT: Add scrollbar to BSPanel_Statistics level, NOT as child of panelRightMenu
+        // This prevents the scrollbar from being clipped by panelRightMenu's scissor
+        scrollRight = new TScrollBarWidget(
+                panelRightMenu.getEndX(), panelRightMenu.getY(),  // Position at right edge of panelRightMenu
+                8, panelRightMenu.getHeight(), panelRightMenu); // Target is panelRightMenu for scrolling
+        addChild(scrollRight, false);
+        
+        System.out.println("[BSPanel_Statistics] scrollRight: (" + scrollRight.getX() + "," + scrollRight.getY() + 
+                ") size=(" + scrollRight.getWidth() + "x" + scrollRight.getHeight() + ")");
 
         // --- Init stats ---
         refreshStatsPanel();

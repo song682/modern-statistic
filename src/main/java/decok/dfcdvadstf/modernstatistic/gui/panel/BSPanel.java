@@ -7,7 +7,7 @@ import decok.dfcdvadstf.modernstatistic.gui.TPanelElement;
  */
 public class BSPanel extends TPanelElement {
 
-    public static final int COLOR_OUTLINE = 0xFF000000;
+    public static final int COLOR_OUTLINE = 0x80000000;
 
     public BSPanel(int x, int y, int width, int height) {
         super(x, y, width, height);

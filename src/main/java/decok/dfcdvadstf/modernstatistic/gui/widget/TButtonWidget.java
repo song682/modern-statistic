@@ -15,11 +15,11 @@ public class TButtonWidget extends TElement {
     protected PressAction onPress;
     protected boolean pressed = false;
 
-    private static final int COLOR_NORMAL_BG = 0xCC000000;
-    private static final int COLOR_HOVERED_BG = 0xCC333333;
+    private static final int COLOR_NORMAL_BG = 0x80000000;
+    private static final int COLOR_HOVERED_BG = 0x80333333;
     private static final int COLOR_NORMAL_TEXT = 0xE0E0E0;
     private static final int COLOR_DISABLED_TEXT = 0xA0A0A0;
-    private static final int COLOR_OUTLINE = 0xFF000000;
+    private static final int COLOR_OUTLINE = 0x80000000;
     private static final int COLOR_OUTLINE_FOCUSED = 0xFFFFFFFF;
 
     public TButtonWidget(int x, int y, int width, int height, String text, PressAction onPress) {

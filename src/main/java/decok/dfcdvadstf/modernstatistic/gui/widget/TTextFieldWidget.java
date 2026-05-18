@@ -22,9 +22,9 @@ public class TTextFieldWidget extends TElement {
     protected int maxLength = 100;
     protected int tickCounter = 0;
 
-    private static final int COLOR_BG = 0xCC000000;
+    private static final int COLOR_BG = 0x80000000;
     private static final int COLOR_BG_FOCUSED = 0xDD111111;
-    private static final int COLOR_OUTLINE = 0xFF000000;
+    private static final int COLOR_OUTLINE = 0x80000000;
     private static final int COLOR_OUTLINE_FOCUSED = 0xFFFFFFFF;
     private static final int COLOR_TEXT = 0xE0E0E0;
     private static final int COLOR_CURSOR = 0xFFFFFF;
@@ -49,10 +49,10 @@ public class TTextFieldWidget extends TElement {
 
     @Override
     protected void renderSelf(int mouseX, int mouseY, float partialTicks) {
-        boolean highlight = focused && ModernStatistic.config.inputFocusHighlight;
-
-        // Background — slightly lighter when focused
-        fill(x, y, getEndX(), getEndY(), highlight ? COLOR_BG_FOCUSED : COLOR_BG);
+        // Background — brighter when focused if config enabled
+        int bgColor = (focused && ModernStatistic.config.inputFocusHighlight)
+                ? COLOR_BG_FOCUSED : COLOR_BG;
+        fill(x, y, getEndX(), getEndY(), bgColor);
 
         // Text
         String display = text;
@@ -75,8 +75,9 @@ public class TTextFieldWidget extends TElement {
 
     @Override
     protected void postRenderSelf(int mouseX, int mouseY, float partialTicks) {
-        boolean highlight = focused && ModernStatistic.config.inputFocusHighlight;
-        drawOutline(x, y, getEndX(), getEndY(), highlight ? COLOR_OUTLINE_FOCUSED : COLOR_OUTLINE);
+        int outlineColor = (focused && ModernStatistic.config.inputFocusHighlight)
+                ? COLOR_OUTLINE_FOCUSED : COLOR_OUTLINE;
+        drawOutline(x, y, getEndX(), getEndY(), outlineColor);
     }
 
     @Override

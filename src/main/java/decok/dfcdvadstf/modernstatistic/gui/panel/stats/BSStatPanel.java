@@ -20,23 +20,33 @@ public abstract class BSStatPanel extends BSPanel {
     public BSStatPanel(BSPanel parentToFill, TBetterStatsScreen screen) {
         this(parentToFill.getX(), parentToFill.getY(),
                 parentToFill.getWidth(), parentToFill.getHeight(), screen);
-        // Add self to parent
+        // Add self to parent (scrollbar now managed by parent)
         parentToFill.addChild(this, false);
     }
 
     public BSStatPanel(int x, int y, int width, int height, TBetterStatsScreen screen) {
-        super(x, y, width - 8, height); // leave room for scrollbar
+        super(x, y, width, height); // Full width, no scrollbar space needed
         this.screen = screen;
         setScrollPadding(10);
         setSmoothScroll(true);
 
-        // Create scrollbar (will be added by parent)
-        this.scrollBar = new TScrollBarWidget(
-                getEndX(), getY(), 8, getHeight(), this);
-        addChild(scrollBar, false);
+        // No internal scrollbar - parent panel (panelRightMenu) handles scrolling
+        this.scrollBar = null;
     }
 
-    public TScrollBarWidget getVerticalScrollBar() { return scrollBar; }
+    public TScrollBarWidget getVerticalScrollBar() { 
+        // Return parent's scrollbar if available
+        if (scrollBar != null) return scrollBar;
+        if (getParent() instanceof BSPanel) {
+            BSPanel parent = (BSPanel) getParent();
+            if (parent.getParent() instanceof decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics) {
+                decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics statsPanel = 
+                    (decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics) parent.getParent();
+                return statsPanel.getScrollRight();
+            }
+        }
+        return null;
+    }
 
     // ==================== Abstract ====================
 

@@ -177,10 +177,16 @@ public class TElement {
      */
     public void render(int mouseX, int mouseY, float partialTicks) {
         if (!visible) return;
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         renderSelf(mouseX, mouseY, partialTicks);
         // Render children
         for (TElement child : children) {
             if (child.visible) {
+                if (child.getClass().getSimpleName().contains("ScrollBar")) {
+                    System.out.println("[TElement] Rendering child ScrollBar: (" + child.x + "," + child.y + ")" +
+                            " size=(" + child.width + "x" + child.height + ")");
+                }
                 child.render(mouseX, mouseY, partialTicks);
             }
         }
@@ -220,10 +226,17 @@ public class TElement {
         // Check children first (topmost in rendering order = last in list)
         for (int i = children.size() - 1; i >= 0; i--) {
             TElement child = children.get(i);
-            if (child.mouseClicked(mouseX, mouseY, button)) return true;
+            System.out.println("[TElement] Checking child " + child.getClass().getSimpleName() + 
+                    " at (" + child.x + "," + child.y + ")-" + child.getEndX() + "," + child.getEndY() + 
+                    ", mouse=(" + mouseX + "," + mouseY + ")");
+            if (child.mouseClicked(mouseX, mouseY, button)) {
+                System.out.println("[TElement] Child " + child.getClass().getSimpleName() + " HANDLED click");
+                return true;
+            }
         }
         // Then this element
         if (mouseX >= x && mouseX < getEndX() && mouseY >= y && mouseY < getEndY()) {
+            System.out.println("[TElement] " + getClass().getSimpleName() + " bounds match, calling onMouseClicked");
             return onMouseClicked(mouseX, mouseY, button);
         }
         return false;

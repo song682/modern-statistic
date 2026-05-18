@@ -22,7 +22,9 @@ public class BSPanel_StatisticsFilters extends BSPanel {
     public BSPanel_StatisticsFilters(int x, int y, int width, int height, TBetterStatsScreen screen) {
         super(x, y, width, height);
         this.screen = screen;
-        setSmoothScroll(true);
+        // Left sidebar is fixed - no scrolling needed
+        setSmoothScroll(false);
+        setScrollPadding(0);
     }
 
     public void init() {

@@ -10,10 +10,10 @@ import org.lwjgl.input.Mouse;
  */
 public class TScrollBarWidget extends TElement {
 
-    private static final int COLOR_BG = 0x50000000;       // semi-transparent black
+    private static final int COLOR_BG = 0x80000000;       // 50% transparent black (more visible)
     private static final int COLOR_BLACK = 0xFF000000;
-    private static final int COLOR_NORMAL = 0x32FFFFFF;   // ~50 alpha white
-    private static final int COLOR_HOVERED = 0x6EFFFFFF;  // ~110 alpha white
+    private static final int COLOR_NORMAL = 0x60FFFFFF;   // 96/255 ~38% alpha white (more visible)
+    private static final int COLOR_HOVERED = 0xA0FFFFFF;  // 160/255 ~63% alpha white (more visible)
 
     protected final TPanelElement target;
     protected boolean dragging = false;
@@ -67,13 +67,24 @@ public class TScrollBarWidget extends TElement {
 
     @Override
     protected void renderSelf(int mouseX, int mouseY, float partialTicks) {
+        // Don't render in renderSelf - we'll render in postRender to be on top
+    }
+    
+    @Override
+    protected void postRenderSelf(int mouseX, int mouseY, float partialTicks) {
+        if (!visible) return;
+        
         // Track background
         fill(x, y, getEndX(), getEndY(), COLOR_BG);
+        
+        // Draw outline
         drawOutline(x, y, getEndX(), getEndY(), COLOR_BLACK);
+        
         // Knob
         int knobY = getKnobY();
         int knobH = getKnobHeight();
         int knobColor = (focused || hovered) ? COLOR_HOVERED : COLOR_NORMAL;
+        
         fill(x + 1, knobY + 1, getEndX() - 1, knobY + knobH - 1, knobColor);
     }
 
@@ -81,20 +92,28 @@ public class TScrollBarWidget extends TElement {
 
     @Override
     protected boolean onMouseClicked(int mouseX, int mouseY, int button) {
+        System.out.println("[ScrollBar] onMouseClicked: button=" + button + ", pos=(" + mouseX + "," + mouseY + 
+                "), scrollbar bounds=(" + x + "," + y + ")-(" + getEndX() + "," + getEndY() + ")");
+        
         if (button != 0) return false;
 
         int knobY = getKnobY();
         int knobH = getKnobHeight();
+        
+        System.out.println("[ScrollBar] Knob: y=" + knobY + ", h=" + knobH);
 
         if (mouseY >= knobY && mouseY < knobY + knobH) {
             // Clicked on knob — start dragging
+            System.out.println("[ScrollBar] Clicked on KNOB - starting drag");
             dragging = true;
             dragStartY = mouseY;
             dragStartValue = getValue();
             return true;
         } else {
             // Clicked on track — jump scroll
+            System.out.println("[ScrollBar] Clicked on TRACK - jump scroll");
             double maxScroll = target != null ? target.getMaxScrollY() : 0;
+            System.out.println("[ScrollBar] Target maxScroll=" + maxScroll);
             if (maxScroll <= 0) return true;
             double clickRatio = (double) (mouseY - y) / height;
             setValue(clickRatio * maxScroll);

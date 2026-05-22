@@ -11,7 +11,6 @@ jobs:
   release:
     uses: song682/workflows/.github/workflows/release-template.yml@main
     with:
-      tags_file_path: 'src/main/java/decok/dfcdvadstf/modernstatistic/Tags.java'
       mod_archives_name: 'ModernStatistic'
       mc_version: '1.7.10'
     secrets:

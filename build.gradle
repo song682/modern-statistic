@@ -1,4 +1,4 @@
-﻿buildscript {
+buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
@@ -91,6 +91,10 @@ dependencies {
     implementation "maven.modrinth:codechickenlib-unofficial:${project.cc_version}"
 
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
+
+    // JNA - 用于获取 OS 级别系统光标
+    includeCompile 'net.java.dev.jna:jna:5.14.0'
+    includeCompile 'net.java.dev.jna:jna-platform:5.14.0'
 }
 
 def dependenciesList = []

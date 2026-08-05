@@ -143,7 +143,10 @@ public class StatsItemsTab extends AbstractScreenTab {
         /** Header height in pixels / 列表头高度（像素） */
         private static final int HEADER_HEIGHT = 20;
 
-        /** Screen height at construction time, for the panel background / 构造时的屏幕高度（面板背景用） */
+        /**
+         * Screen height at construction time, for the panel background /
+         * 构造时的屏幕高度（面板背景用）
+         */
         private final int screenHeight;
         // Column order matching high-version StatsScreen:
         // 0=BLOCK_MINED, 1=ITEM_BROKEN, 2=ITEM_CRAFTED, 3=ITEM_USED, 4=ITEM_PICKED_UP,

@@ -193,9 +193,9 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // Grab the tab instances by their registered ids (105/106/107)
         // 按注册 ID（105/106/107）获取标签页实例
         collectTabs();
-        // Custom init: build the GuiSlots inside each tab (stats are already ready
-        // here)
-        // 自定义初始化：在标签页内部构建 GuiSlot（此时统计数据已就绪）
+        // Custom init: build the selection lists inside each tab (stats are already
+        // ready here) and register them into the widget pipeline
+        // 自定义初始化：在标签页内部构建选择列表（此时统计数据已就绪）并注册进组件管线
         initTabs(btns);
         // Register the actual instances into the TabBar for TabButton creation
         // （TabManager 构造时只注册了 entries，需要注册实际实例才能创建 TabButton）

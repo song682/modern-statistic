@@ -13,7 +13,7 @@ import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(name = Tags.NAME, modid = Tags.MODID, version = Tags.VERSION, dependencies = "required-after:dfdvdsfsAPI", useMetadata = true)
+@Mod(name = Tags.NAME, modid = Tags.MODID, version = Tags.VERSION, dependencies = "required-after:catframe@[0.6.2,)", useMetadata = true)
 public class ModernStatistic {
     public static final Logger logger = LogManager.getLogger(Tags.NAME);
 

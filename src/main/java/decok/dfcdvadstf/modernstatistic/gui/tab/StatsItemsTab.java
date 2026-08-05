@@ -5,6 +5,7 @@ import decok.dfcdvadstf.catframe.ui.components.Component;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
+import decok.dfcdvadstf.modernstatistic.gui.list.ModernSelectionList;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -138,7 +139,7 @@ public class StatsItemsTab extends AbstractScreenTab {
     // ==================== Inner selection list ====================
 
     private class MergedSelectionList
-            extends ContainerObjectSelectionList<MergedSelectionList.MergedEntry> {
+            extends ModernSelectionList<MergedSelectionList.MergedEntry> {
 
         /** Header height in pixels / 列表头高度（像素） */
         private static final int HEADER_HEIGHT = 20;
@@ -161,12 +162,6 @@ public class StatsItemsTab extends AbstractScreenTab {
             buildEntries();
             sortById();
         }
-
-        /** @return the number of entries / 条目数量 */
-        public int size() {
-            return getItemCount();
-        }
-
         // ---- Entry building ----
 
         private void buildEntries() {

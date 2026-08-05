@@ -5,6 +5,7 @@ import decok.dfcdvadstf.catframe.ui.components.Component;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
+import decok.dfcdvadstf.modernstatistic.gui.list.ModernSelectionList;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.Tessellator;
@@ -97,15 +98,13 @@ public class StatsMobsTab extends AbstractScreenTab {
     // ---- Inner selection list ----
 
     private class MobsSelectionList
-            extends ContainerObjectSelectionList<MobsSelectionList.MobsEntry> {
+            extends ModernSelectionList<MobsSelectionList.MobsEntry> {
 
-        /** Screen height at construction time, for the panel background / 构造时的屏幕高度（面板背景用） */
+        /**
+         * Screen height at construction time, for the panel background /
+         * 构造时的屏幕高度（面板背景用）
+         */
         private final int screenHeight;
-
-        /** @return the number of entries / 条目数量 */
-        public int size() {
-            return getItemCount();
-        }
 
         MobsSelectionList(int width, int height) {
             // Row height = 4 lines of text (name + two stat lines with spacing),

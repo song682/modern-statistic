@@ -11,7 +11,6 @@ import decok.dfcdvadstf.catframe.ui.components.tab.TabBar;
 import decok.dfcdvadstf.catframe.ui.components.tab.TabManager;
 import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.catframe.ui.screens.Screen;
-import decok.dfcdvadstf.modernstatistic.ModernStatistic;
 import decok.dfcdvadstf.modernstatistic.gui.tab.ModernStatisticTabBar;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
@@ -139,12 +138,12 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     /**
      * Build the tabbed UI: create the TabBar + TabManager, custom-initialise the
      * three tabs,
-     * register them into the nav bar, disable empty tabs, apply the configured
-     * default tab
+     * register them into the nav bar, disable empty tabs, show the default tab
+     * (General)
      * and add the Done button.
      * <p>
      * 构建标签页界面：创建 TabBar + TabManager、自定义初始化三个标签页、
-     * 注册进导航栏、禁用空标签页、应用配置的默认标签页并添加 Done 按钮。
+     * 注册进导航栏、禁用空标签页、显示默认标签页（General）并添加 Done 按钮。
      * </p>
      */
     @Override
@@ -174,8 +173,8 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // Disable tab buttons whose content is empty (Items/Mobs)
         // 禁用内容为空的标签页按钮（物品 / 生物）
         disableEmptyTabs();
-        // Show the configured default tab, hide the others
-        // 显示配置的默认标签页，隐藏其余
+        // Show the default tab (General), hide the others
+        // 显示默认标签页（General），隐藏其余
         applyDefaultTab();
 
         // Done button — CatFrame Button with vanilla texture (identical look to the
@@ -260,29 +259,20 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     }
 
     /**
-     * Show the configured default tab (config value: General/Items/Mobs; anything
-     * else
-     * falls back to General) and sync the {@link #currentTab} reference.
+     * Show the default tab — fixed to General in TABBED mode. The
+     * {@code defaultTab}
+     * config option belongs to the PANELED screen ({@link TBetterStatsScreen}),
+     * whose
+     * panel set (incl. BalancedDiet/MonsterHunter) does not map onto our three
+     * tabs.
      * <p>
-     * 显示配置的默认标签页（配置值：General/Items/Mobs，其余回退到 General）
-     * 并同步 {@link #currentTab} 引用。
+     * TABBED 模式的默认标签页固定为 General——{@code defaultTab} 配置属于 PANELED 界面
+     * （{@link TBetterStatsScreen}），其面板集合（含 BalancedDiet/MonsterHunter）
+     * 与本界面的三个标签页不对应。
      * </p>
      */
     private void applyDefaultTab() {
         AbstractScreenTab def = tabGeneral;
-        try {
-            String name = ModernStatistic.config.defaultTab;
-            if ("Items".equalsIgnoreCase(name)) {
-                def = tabItems;
-            } else if ("Mobs".equalsIgnoreCase(name)) {
-                def = tabMobs;
-            }
-        } catch (Exception e) {
-            def = tabGeneral;
-        }
-        if (def == null) {
-            def = tabGeneral;
-        }
         // setCurrentTab is a no-op when the tab is already current, so force visibility
         // setCurrentTab 在目标已是当前标签页时不会执行任何操作，因此需要强制设置可见性
         tabManager.setCurrentTab(def, false);

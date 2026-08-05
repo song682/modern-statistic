@@ -9,6 +9,8 @@ import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.components.tab.Tab;
 import decok.dfcdvadstf.catframe.ui.components.tab.TabBar;
 import decok.dfcdvadstf.catframe.ui.components.tab.TabManager;
+import decok.dfcdvadstf.catframe.ui.layouts.HeaderFooterLayout;
+import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.catframe.ui.screens.Screen;
 import decok.dfcdvadstf.modernstatistic.gui.tab.ModernStatisticTabBar;
@@ -52,6 +54,13 @@ import java.util.List;
  * 本界面接管了原先写在 {@code MixinGuiStats} 里的全部标签页渲染与输入逻辑；
  * Mixin 现在只负责把 TABBED 模式路由到本界面。
  * </p>
+ * <p>
+ * The screen is built on a {@link HeaderFooterLayout}: the {@link TabBar} is the
+ * header zone, the Done button is the footer zone, and the tab content fills the
+ * content zone (set via {@link TabManager#setTabArea}).
+ * 界面基于 {@link HeaderFooterLayout} 构建：{@link TabBar} 为 header 区域，
+ * Done 按钮为 footer 区域，标签页内容填充内容区（经 {@link TabManager#setTabArea} 设置）。
+ * </p>
  */
 public class GuiStatics extends Screen implements GuiYesNoCallback {
 
@@ -67,6 +76,15 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
      * Footer 分隔线距底部偏移（与原版 GuiStats 一致）
      */
     private static final int FOOTER_OFFSET = 35;
+
+    /**
+     * Content zone top — the header separator Y that the TabBar draws at
+     * {@code NAV_HEIGHT - 2}; the content panel fills the area between this
+     * line and the footer separator.
+     * 内容区顶部 —— TabBar 在 {@code NAV_HEIGHT - 2} 处绘制的 Header 分隔线 Y；
+     * 内容面板填充该线与 Footer 分隔线之间的区域。
+     */
+    private static final int CONTENT_TOP = TabBar.NAV_HEIGHT - 2;
 
     // ==================== Fields ====================
 
@@ -85,6 +103,16 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
      * 标签页管理器——从注册表加载标签页并处理切换
      */
     protected TabManager tabManager;
+
+    /**
+     * Three-zone layout: header = TabBar, footer = action buttons, content = tabs.
+     * The layout owns the header/footer zone positions; the content zone rectangle
+     * is handed to the {@link TabManager} via {@link TabManager#setTabArea}.
+     * 三区域布局：header = TabBar，footer = 操作按钮，content = 标签页。
+     * 布局负责 header/footer 区域的定位；内容区矩形经 {@link TabManager#setTabArea}
+     * 交给标签页管理器。
+     */
+    protected HeaderFooterLayout layout;
 
     /** Our three tab instances / 我们的三个标签页实例 */
     protected AbstractScreenTab tabGeneral;
@@ -177,18 +205,38 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // 显示默认标签页（General），隐藏其余
         applyDefaultTab();
 
+        // Three-zone layout: header = TabBar, footer = action buttons, content = tabs.
+        // The layout owns the zone positions; the content zone rectangle is derived
+        // from the header/footer separators (see the setTabArea call below).
+        // 三区域布局：header = TabBar，footer = 操作按钮，content = 标签页。
+        // 布局负责区域定位；内容区矩形由 Header/Footer 分隔线推导（见下方 setTabArea）。
+        layout = new HeaderFooterLayout(TabBar.NAV_HEIGHT, FOOTER_OFFSET);
+        layout.setHeader(tabBar);
+
         // Done button — CatFrame Button with vanilla texture (identical look to the
-        // vanilla GuiButton it replaces); press callback returns to the parent screen
+        // vanilla GuiButton it replaces); press callback returns to the parent screen.
+        // Its position is managed by the layout's footer zone (centered).
         // 完成按钮——CatFrame Button，使用原版纹理（与被替换的原版 GuiButton 外观一致）；
-        // 按下回调返回父界面
+        // 按下回调返回父界面。位置由布局的 footer 区域管理（居中）。
         Button doneButton = Button.builder(Text.translatable("gui.done"),
                 b -> this.mc.displayGuiScreen(parent))
-                .pos(width / 2 - 140, height - 28)
                 .width(280)
                 .height(20)
                 .useVanillaTexture(true)
                 .build();
+        layout.addToFooter(doneButton);
         addRenderableWidget(doneButton);
+
+        // Apply the layout: header pinned to the top, footer pinned to the bottom
+        // 应用布局：header 固定顶部，footer 固定底部
+        layout.recalculate(width, height);
+
+        // Content zone — the rectangle between the header separator (y=22) and the
+        // footer separator (y=height-35). Tabs fill it via doLayout on every switch.
+        // 内容区 —— Header 分隔线（y=22）与 Footer 分隔线（y=height-35）之间的矩形；
+        // 标签页在每次切换时通过 doLayout 填充该区域。
+        tabManager.setTabArea(new ScreenRectangle(0, CONTENT_TOP, width,
+                height - CONTENT_TOP - FOOTER_OFFSET));
     }
 
     /**

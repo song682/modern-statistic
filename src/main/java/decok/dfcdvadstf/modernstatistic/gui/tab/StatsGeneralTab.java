@@ -2,6 +2,7 @@ package decok.dfcdvadstf.modernstatistic.gui.tab;
 
 import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
+import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiSlot;
@@ -57,6 +58,15 @@ public class StatsGeneralTab extends AbstractScreenTab {
     public void keyTyped(char typedChar, int keyCode) {
     }
 
+    @Override
+    public void doLayout(ScreenRectangle rectangle) {
+        // Fill the content zone (between the header/footer separators) with the slot
+        // 用 GuiSlot 填充内容区（Header/Footer 分隔线之间）
+        if (slot != null) {
+            slot.setBounds(rectangle);
+        }
+    }
+
     // ---- Inner GuiSlot ----
 
     private class GeneralSlot extends GuiSlot {
@@ -67,6 +77,16 @@ public class StatsGeneralTab extends AbstractScreenTab {
             // 内部类构造器的 super() 调用中不能隐式引用外部类字段，故 mc 使用限定引用
             super(StatsGeneralTab.this.mc, width, height, 22, height - 35, 10);
             setShowSelectionBox(false);
+        }
+
+        void setBounds(ScreenRectangle rectangle) {
+            // GuiSlot keeps width/height fixed at construction time (the screen size),
+            // only the visible scroll area bounds are updated by the layout
+            // GuiSlot 的 width/height 在构造时固定（屏幕尺寸），布局只更新可见滚动区边界
+            this.left = rectangle.left();
+            this.top = rectangle.top();
+            this.right = rectangle.right();
+            this.bottom = rectangle.bottom();
         }
 
         @Override

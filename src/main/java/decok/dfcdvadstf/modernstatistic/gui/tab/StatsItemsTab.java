@@ -1,12 +1,13 @@
 package decok.dfcdvadstf.modernstatistic.gui.tab;
 
 import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
+import decok.dfcdvadstf.catframe.ui.components.Component;
+import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
@@ -21,13 +22,10 @@ import net.minecraft.stats.StatCrafting;
 import net.minecraft.stats.StatFileWriter;
 import net.minecraft.stats.StatList;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +64,7 @@ public class StatsItemsTab extends AbstractScreenTab {
     private static final int[] COLUMN_ICON_V = { 18, 18, 18, 18, 0, 18 };
     private static final boolean[] COLUMN_USE_MODERN = { false, false, false, false, true, true };
 
-    private MergedSlot slot;
+    private MergedSelectionList list;
 
     public StatsItemsTab() {
         super(106, "stat.itemsButton");
@@ -75,25 +73,38 @@ public class StatsItemsTab extends AbstractScreenTab {
     public void initGui(int width, int height, List<GuiButton> buttonList,
             StatFileWriter writer) {
         this.statFileWriter = writer;
-        this.slot = new MergedSlot(width, height);
-        this.slot.registerScrollButtons(1, 1);
+        this.list = new MergedSelectionList(width, height);
         setVisible(false);
+    }
+
+    /**
+     * The list component, registered into the screen's widget pipeline by
+     * {@code GuiStatics.initTabs} so rendering, clicks and the scroll wheel are
+     * dispatched automatically.
+     * <p>
+     * 列表组件，由 {@code GuiStatics.initTabs} 注册进界面的组件管线，
+     * 渲染 / 点击 / 滚轮自动分发。
+     * </p>
+     */
+    public Component getList() {
+        return list;
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        if (!visible || slot == null)
-            return;
-        slot.drawScreen(mouseX, mouseY, partialTicks);
+        // The list is rendered by the screen's component pipeline (addRenderableWidget)
+        // 列表由界面的组件管线渲染（addRenderableWidget）
     }
 
     @Override
     public void actionPerformed(GuiButton button) {
-        // Column header clicks are handled inside the slot
+        // Column header clicks are handled inside the list
     }
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        // Mouse events are dispatched by the screen's component pipeline
+        // 鼠标事件由界面的组件管线分发
     }
 
     @Override
@@ -101,23 +112,39 @@ public class StatsItemsTab extends AbstractScreenTab {
     }
 
     @Override
+    public void setVisible(boolean visible) {
+        // Keep the list visibility in sync (TabManager calls this on every switch)
+        // 同步列表可见性（TabManager 每次切换都会调用本方法）
+        super.setVisible(visible);
+        if (list != null) {
+            list.setVisible(visible);
+        }
+    }
+
+    @Override
     public void doLayout(ScreenRectangle rectangle) {
-        // Fill the content zone (between the header/footer separators) with the slot
-        // 用 GuiSlot 填充内容区（Header/Footer 分隔线之间）
-        if (slot != null) {
-            slot.setBounds(rectangle);
+        // Fill the content zone (between the header/footer separators) with the list
+        // 用列表填充内容区（Header/Footer 分隔线之间）
+        if (list != null) {
+            list.updateSizeAndPosition(rectangle.width, rectangle.height,
+                    rectangle.left(), rectangle.top());
         }
     }
 
     public boolean isEmpty() {
-        return slot == null || slot.getSize() == 0;
+        return list == null || list.size() == 0;
     }
 
-    // ==================== Inner GuiSlot ====================
+    // ==================== Inner selection list ====================
 
-    private class MergedSlot extends GuiSlot {
+    private class MergedSelectionList
+            extends ContainerObjectSelectionList<MergedSelectionList.MergedEntry> {
 
-        private final List<MergedEntry> entries = new ArrayList<>();
+        /** Header height in pixels / 列表头高度（像素） */
+        private static final int HEADER_HEIGHT = 20;
+
+        /** Screen height at construction time, for the panel background / 构造时的屏幕高度（面板背景用） */
+        private final int screenHeight;
         // Column order matching high-version StatsScreen:
         // 0=BLOCK_MINED, 1=ITEM_BROKEN, 2=ITEM_CRAFTED, 3=ITEM_USED, 4=ITEM_PICKED_UP,
         // 5=ITEM_DROPPED
@@ -125,26 +152,16 @@ public class StatsItemsTab extends AbstractScreenTab {
         private int sortDirection = -1; // 1=ascending, -1=descending
         private int hoveredHeader = -1;
 
-        MergedSlot(int width, int height) {
-            // An inner-class constructor may not reference enclosing fields implicitly
-            // in its super() call, hence the qualified mc reference
-            // 内部类构造器的 super() 调用中不能隐式引用外部类字段，故 mc 使用限定引用
-            super(StatsItemsTab.this.mc, width, height, 22,
-                    height - 35, 20);
-            setShowSelectionBox(false);
-            setHasListHeader(true, 20);
+        MergedSelectionList(int width, int height) {
+            super(width, height, 22, 20);
+            this.screenHeight = height;
             buildEntries();
             sortById();
         }
 
-        void setBounds(ScreenRectangle rectangle) {
-            // GuiSlot keeps width/height fixed at construction time (the screen size),
-            // only the visible scroll area bounds are updated by the layout
-            // GuiSlot 的 width/height 在构造时固定（屏幕尺寸），布局只更新可见滚动区边界
-            this.left = rectangle.left();
-            this.top = rectangle.top();
-            this.right = rectangle.right();
-            this.bottom = rectangle.bottom();
+        /** @return the number of entries / 条目数量 */
+        public int size() {
+            return getItemCount();
         }
 
         // ---- Entry building ----
@@ -220,11 +237,13 @@ public class StatsItemsTab extends AbstractScreenTab {
                 }
             }
 
-            entries.addAll(byId.values());
+            for (MergedEntry entry : byId.values()) {
+                addEntry(entry);
+            }
         }
 
         private void sortById() {
-            Collections.sort(entries, new Comparator<MergedEntry>() {
+            sort(new Comparator<MergedEntry>() {
                 @Override
                 public int compare(MergedEntry a, MergedEntry b) {
                     return Integer.compare(a.itemId, b.itemId);
@@ -232,74 +251,90 @@ public class StatsItemsTab extends AbstractScreenTab {
             });
         }
 
-        // ---- GuiSlot overrides ----
+        // ---- Geometry ----
 
         @Override
-        protected int getSize() {
-            return entries.size();
+        public int getRowWidth() {
+            // Clickable area: from contentX (0 relative) to rightmost column center + 18
+            // (icon half). Must be >= getColumnX(5)=275 for column 5 clicks to register
+            return getColumnX(5) + 18 + 4;
         }
 
         @Override
-        protected void elementClicked(int index, boolean doubleClick,
-                int mouseX, int mouseY) {
+        public int getRowLeft() {
+            // Preserve the vanilla formula (width - listWidth) / 2 exactly
+            // 保持原版公式 (width - listWidth) / 2 精确一致
+            return getX() + (width - getRowWidth()) / 2;
         }
 
-        @Override
-        protected boolean isSelected(int index) {
-            return false;
-        }
+        // ---- Background ----
 
         @Override
-        protected int getContentHeight() {
-            return getSize() * slotHeight;
-        }
-
-        @Override
-        protected void drawContainerBackground(Tessellator tessellator) {
+        protected void renderBackground(int mouseX, int mouseY, float partialTicks) {
+            // Panel background (bottom strip) + tiled dark over the visible list area,
+            // mirroring the vanilla slot's drawBackground/drawContainerBackground pair
+            // 面板背景（底部条带）+ 可见列表区的平铺深色纹理，
+            // 与原版槽的 drawBackground/drawContainerBackground 组合一致
+            ContentPanelRenderer.drawPanelBackground(0, getY() + 2, getWidth(),
+                    screenHeight - 35);
             mc.getTextureManager().bindTexture(Gui.optionsBackground);
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             float f1 = 32.0F;
-            int scrolled = getAmountScrolled();
-            tessellator.startDrawingQuads();
-            tessellator.setColorOpaque_I(4210752);
-            tessellator.addVertexWithUV((double) this.left, (double) this.bottom, 0.0D,
-                    (double) ((float) this.left / f1), (double) ((float) (this.bottom + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.right, (double) this.bottom, 0.0D,
-                    (double) ((float) this.right / f1), (double) ((float) (this.bottom + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.right, (double) this.top, 0.0D,
-                    (double) ((float) this.right / f1), (double) ((float) (this.top + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.left, (double) this.top, 0.0D, (double) ((float) this.left / f1),
-                    (double) ((float) (this.top + scrolled) / f1));
-            tessellator.draw();
+            int scrolled = (int) scrollAmount();
+            Tessellator tess = Tessellator.instance;
+            tess.startDrawingQuads();
+            tess.setColorOpaque_I(4210752);
+            tess.addVertexWithUV((double) getX(), (double) getBottom(), 0.0D,
+                    (double) ((float) getX() / f1),
+                    (double) ((float) (getBottom() + scrolled) / f1));
+            tess.addVertexWithUV((double) getRight(), (double) getBottom(), 0.0D,
+                    (double) ((float) getRight() / f1),
+                    (double) ((float) (getBottom() + scrolled) / f1));
+            tess.addVertexWithUV((double) getRight(), (double) getY(), 0.0D,
+                    (double) ((float) getRight() / f1),
+                    (double) ((float) (getY() + scrolled) / f1));
+            tess.addVertexWithUV((double) getX(), (double) getY(), 0.0D,
+                    (double) ((float) getX() / f1),
+                    (double) ((float) (getY() + scrolled) / f1));
+            tess.draw();
         }
 
         @Override
-        protected void drawBackground() {
-            ContentPanelRenderer.drawPanelBackground(0, 24, width, height - 35);
+        protected void renderListItems(int mouseX, int mouseY, float partialTicks) {
+            // Keep each entry's visual row index in sync for the zebra striping
+            // 同步每个条目的视觉行号，用于斑马纹着色
+            int i = 0;
+            for (MergedEntry child : children()) {
+                if (child.getY() + child.getHeight() >= getY()
+                        && child.getY() <= getBottom()) {
+                    child.rowIndex = i;
+                    renderItem(child, mouseX, mouseY, partialTicks);
+                }
+                i++;
+            }
         }
 
         // ---- Header ----
 
         @Override
-        protected void drawListHeader(int x, int y, Tessellator tess) {
-            if (!Mouse.isButtonDown(0)) {
-                hoveredHeader = -1;
-            }
-            int contentX = (this.width - this.getListWidth()) / 2;
+        protected void renderSeparators() {
+            // Column header — drawn outside the scissor so it never scrolls
+            // 列表头 —— 在 scissor 之外绘制，固定不滚动
+            int rowLeft = getRowLeft();
 
             for (int col = 0; col < 6; col++) {
-                int colX = contentX + getColumnX(col);
+                int colX = rowLeft + getColumnX(col);
                 boolean isHovered = hoveredHeader == col;
                 boolean isModern = COLUMN_USE_MODERN[col];
 
                 // 1. Button background: SLOT texture (u=0,v=0) when hovered, HEADER (u=0,v=18)
                 // when not
                 int bgV = isHovered ? 0 : 18;
-                drawSprite(colX - 18, y + 1, 0, bgV);
+                drawSprite(colX - 18, getY() + 1, 0, bgV);
 
                 // 2. Column icon (shifted +1,+1 when hovered for pressed effect)
                 int iconX = colX - 18 + (isHovered ? 1 : 0);
-                int iconY = y + 1 + (isHovered ? 1 : 0);
+                int iconY = getY() + 1 + (isHovered ? 1 : 0);
                 if (isModern) {
                     drawModernSprite(iconX, iconY, COLUMN_ICON_U[col]);
                 } else {
@@ -311,34 +346,8 @@ public class StatsItemsTab extends AbstractScreenTab {
             // ARROW_DOWN(u=36))
             if (sortColumn >= 0 && sortColumn < 6) {
                 int arrowU = (sortDirection == 1) ? 36 : 18;
-                drawSprite(contentX + getColumnX(sortColumn) - 36, y + 1, arrowU, 0);
-            }
-        }
-
-        @Override
-        protected void func_148132_a(int mouseX, int mouseY) {
-            hoveredHeader = -1;
-
-            // mouseY is already transformed by GuiSlot: screenY - top + amountScrolled - 4
-            // Header is drawn at y=0 in these coordinates (height=20), rows start at y=20
-            if (mouseY >= 0 && mouseY <= 20) {
-                // mouseX is relative to k1 = (width - listWidth) / 2 (GuiSlot subtracts it
-                // before calling)
-                for (int col = 0; col < 6; col++) {
-                    int colLeft = getColumnX(col) - 18;
-                    int colRight = getColumnX(col);
-                    if (mouseX >= colLeft && mouseX < colRight) {
-                        hoveredHeader = col;
-                        break;
-                    }
-                }
-            }
-
-            if (hoveredHeader >= 0) {
-                sortByColumn(hoveredHeader);
-                mc.getSoundHandler().playSound(
-                        PositionedSoundRecord.func_147674_a(
-                                new ResourceLocation("gui.button.press"), 1.0F));
+                drawSprite(rowLeft + getColumnX(sortColumn) - 36, getY() + 1,
+                        arrowU, 0);
             }
         }
 
@@ -347,17 +356,62 @@ public class StatsItemsTab extends AbstractScreenTab {
             return 75 + 40 * col;
         }
 
+        // ---- Header interaction ----
+
         @Override
-        protected int getScrollBarX() {
-            return this.width / 2 + getListWidth() / 2 + 4;
+        public void render(int mouseX, int mouseY, float partialTicks) {
+            // Refresh the header hover before the render pipeline draws it
+            // 在渲染管线绘制列表头之前刷新其悬停状态
+            updateHeaderHover(mouseX, mouseY);
+            super.render(mouseX, mouseY, partialTicks);
+            drawTooltip(mouseX, mouseY);
+        }
+
+        private void updateHeaderHover(int mouseX, int mouseY) {
+            hoveredHeader = -1;
+            if (mouseY < getY() || mouseY >= getY() + HEADER_HEIGHT) {
+                return;
+            }
+            int rowLeft = getRowLeft();
+            for (int col = 0; col < 6; col++) {
+                int colLeft = rowLeft + getColumnX(col) - 18;
+                int colRight = rowLeft + getColumnX(col);
+                if (mouseX >= colLeft && mouseX < colRight) {
+                    hoveredHeader = col;
+                    break;
+                }
+            }
         }
 
         @Override
-        public int getListWidth() {
-            // Clickable area: from contentX (0 relative) to rightmost column center + 18
-            // (icon half)
-            // Must be >= getColumnX(5)=275 for column 5 clicks to register
-            return getColumnX(5) + 18 + 4;
+        public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+            // Header click sorts the column; anything else falls through to the
+            // scrollbar/list handling
+            // 表头点击排序；其余交给滚动条 / 列表处理
+            if (mouseButton == 0 && mouseY >= getY()
+                    && mouseY < getY() + HEADER_HEIGHT) {
+                int col = getHeaderColumnAt(mouseX);
+                if (col >= 0) {
+                    sortByColumn(col);
+                    mc.getSoundHandler().playSound(
+                            PositionedSoundRecord.func_147674_a(
+                                    new ResourceLocation("gui.button.press"), 1.0F));
+                    return;
+                }
+            }
+            super.mouseClicked(mouseX, mouseY, mouseButton);
+        }
+
+        private int getHeaderColumnAt(int mouseX) {
+            int rowLeft = getRowLeft();
+            for (int col = 0; col < 6; col++) {
+                int colLeft = rowLeft + getColumnX(col) - 18;
+                int colRight = rowLeft + getColumnX(col);
+                if (mouseX >= colLeft && mouseX < colRight) {
+                    return col;
+                }
+            }
+            return -1;
         }
 
         private void sortByColumn(int column) {
@@ -381,7 +435,7 @@ public class StatsItemsTab extends AbstractScreenTab {
 
             final int col = sortColumn;
             final int dir = sortDirection;
-            Collections.sort(entries, new Comparator<MergedEntry>() {
+            sort(new Comparator<MergedEntry>() {
                 @Override
                 public int compare(MergedEntry a, MergedEntry b) {
                     int va = a.getStatValue(col, statFileWriter);
@@ -395,56 +449,20 @@ public class StatsItemsTab extends AbstractScreenTab {
             });
         }
 
-        // ---- Slot drawing ----
-
-        @Override
-        protected void drawSlot(int index, int x, int y, int slotHeight,
-                Tessellator tess, int mouseX, int mouseY) {
-            MergedEntry entry = entries.get(index);
-            int contentX = (this.width - this.getListWidth()) / 2;
-            drawItemIcon(contentX + 40, y, entry.item, entry.damage);
-            int id = entry.itemId;
-            boolean even = index % 2 == 0;
-
-            // Col 0: BLOCK_MINED — blocks only
-            if (entry.isBlock && StatList.mineBlockStatArray[id] != null) {
-                drawStat(StatList.mineBlockStatArray[id], contentX + getColumnX(0), y, even);
-            } else {
-                drawStat(null, contentX + getColumnX(0), y, even);
-            }
-            // Col 1: ITEM_BROKEN — damageable items only
-            if (!entry.isBlock && StatList.objectBreakStats[id] != null) {
-                drawStat(StatList.objectBreakStats[id], contentX + getColumnX(1), y, even);
-            } else {
-                drawStat(null, contentX + getColumnX(1), y, even);
-            }
-            // Col 2: ITEM_CRAFTED
-            drawStat(StatList.objectCraftStats[id], contentX + getColumnX(2), y, even);
-            // Col 3: ITEM_USED
-            drawStat(StatList.objectUseStats[id], contentX + getColumnX(3), y, even);
-            // Col 4: ITEM_PICKED_UP
-            drawPickupStat(id, contentX + getColumnX(4), y, even);
-            // Col 5: ITEM_DROPPED
-            drawDropStat(id, contentX + getColumnX(5), y, even);
-        }
-
         // ---- Tooltip ----
 
-        @Override
-        protected void func_148142_b(int mouseX, int mouseY) {
-            if (mouseY < top || mouseY > bottom)
+        private void drawTooltip(int mouseX, int mouseY) {
+            if (mouseY < getY() || mouseY > getBottom())
                 return;
+            int rowLeft = getRowLeft();
 
-            int index = func_148124_c(mouseX, mouseY);
-            // contentX = the actual x passed to drawSlot / drawListHeader
-            int contentX = (this.width - this.getListWidth()) / 2;
+            MergedEntry hoveredEntry = getHovered();
 
             // Item icon tooltip
-            if (index >= 0) {
-                if (mouseX >= contentX + 40 && mouseX <= contentX + 40 + 20) {
-                    MergedEntry entry = entries.get(index);
+            if (hoveredEntry != null) {
+                if (mouseX >= rowLeft + 40 && mouseX <= rowLeft + 60) {
                     String name = ("" + I18n.format(
-                            entry.item.getUnlocalizedName() + ".name")).trim();
+                            hoveredEntry.item.getUnlocalizedName() + ".name")).trim();
                     if (!name.isEmpty()) {
                         drawHoverTooltip(Arrays.asList(name), mouseX, mouseY);
                     }
@@ -453,12 +471,12 @@ public class StatsItemsTab extends AbstractScreenTab {
             }
 
             // Header icon tooltips (6 columns)
-            if (index < 0) {
+            if (hoveredEntry == null && mouseY < getY() + HEADER_HEIGHT) {
                 String[] tips = { "stat.mined", "stat.depleted", "stat.crafted",
                         "stat.used", "stat.pickup", "stat.drop" };
                 for (int col = 0; col < 6; col++) {
-                    int colLeft = contentX + getColumnX(col) - 18;
-                    int colRight = contentX + getColumnX(col);
+                    int colLeft = rowLeft + getColumnX(col) - 18;
+                    int colRight = rowLeft + getColumnX(col);
                     if (mouseX >= colLeft && mouseX <= colRight) {
                         String tip = ("" + I18n.format(tips[col])).trim();
                         if (!tip.isEmpty()) {
@@ -603,56 +621,99 @@ public class StatsItemsTab extends AbstractScreenTab {
                     columnX - mc.fontRenderer.getStringWidth(s), y + 5,
                     even ? 16777215 : 9474192);
         }
-    }
 
-    // ==================== Data class ====================
+        // ---- Entry ----
 
-    private static class MergedEntry {
-        final Item item;
-        final int itemId;
-        final boolean isBlock;
-        final int damage;
+        private class MergedEntry extends ContainerObjectSelectionList.Entry<MergedEntry> {
 
-        MergedEntry(Item item, int itemId, boolean isBlock) {
-            this(item, itemId, isBlock, 0);
-        }
+            final Item item;
+            final int itemId;
+            final boolean isBlock;
+            final int damage;
+            /** Visual row index (current order), refreshed each frame / 视觉行号（当前顺序），每帧刷新 */
+            int rowIndex;
 
-        MergedEntry(Item item, int itemId, boolean isBlock, int damage) {
-            this.item = item;
-            this.itemId = itemId;
-            this.isBlock = isBlock;
-            this.damage = damage;
-        }
-
-        /**
-         * Get stat value for the given column (0=BLOCK_MINED, 1=ITEM_BROKEN,
-         * 2=ITEM_CRAFTED, 3=ITEM_USED, 4=PICKED_UP, 5=DROPPED).
-         */
-        int getStatValue(int column, net.minecraft.stats.StatFileWriter writer) {
-            StatBase stat = null;
-            switch (column) {
-                case 0: // BLOCK_MINED
-                    if (isBlock) {
-                        stat = StatList.mineBlockStatArray[itemId];
-                    }
-                    break;
-                case 1: // ITEM_BROKEN
-                    if (!isBlock) {
-                        stat = StatList.objectBreakStats[itemId];
-                    }
-                    break;
-                case 2: // ITEM_CRAFTED
-                    stat = StatList.objectCraftStats[itemId];
-                    break;
-                case 3: // ITEM_USED
-                    stat = StatList.objectUseStats[itemId];
-                    break;
-                case 4: // ITEM_PICKED_UP
-                    return decok.dfcdvadstf.modernstatistic.ItemStatsTracker.getPickupCount(itemId);
-                case 5: // ITEM_DROPPED
-                    return decok.dfcdvadstf.modernstatistic.ItemStatsTracker.getDropCount(itemId);
+            MergedEntry(Item item, int itemId, boolean isBlock) {
+                this(item, itemId, isBlock, 0);
             }
-            return stat != null ? writer.writeStat(stat) : 0;
+
+            MergedEntry(Item item, int itemId, boolean isBlock, int damage) {
+                this.item = item;
+                this.itemId = itemId;
+                this.isBlock = isBlock;
+                this.damage = damage;
+            }
+
+            @Override
+            public List<? extends Component> children() {
+                // This entry has no child components
+                // 本条目没有子组件
+                return java.util.Collections.emptyList();
+            }
+
+            @Override
+            public void renderContent(int mouseX, int mouseY, boolean hovered,
+                    float partialTicks) {
+                boolean even = rowIndex % 2 == 0;
+                drawItemIcon(getX() + 40, getY(), item, damage);
+                int id = itemId;
+
+                // Col 0: BLOCK_MINED — blocks only
+                if (isBlock && StatList.mineBlockStatArray[id] != null) {
+                    drawStat(StatList.mineBlockStatArray[id],
+                            getX() + getColumnX(0), getY(), even);
+                } else {
+                    drawStat(null, getX() + getColumnX(0), getY(), even);
+                }
+                // Col 1: ITEM_BROKEN — damageable items only
+                if (!isBlock && StatList.objectBreakStats[id] != null) {
+                    drawStat(StatList.objectBreakStats[id],
+                            getX() + getColumnX(1), getY(), even);
+                } else {
+                    drawStat(null, getX() + getColumnX(1), getY(), even);
+                }
+                // Col 2: ITEM_CRAFTED
+                drawStat(StatList.objectCraftStats[id],
+                        getX() + getColumnX(2), getY(), even);
+                // Col 3: ITEM_USED
+                drawStat(StatList.objectUseStats[id],
+                        getX() + getColumnX(3), getY(), even);
+                // Col 4: ITEM_PICKED_UP
+                drawPickupStat(id, getX() + getColumnX(4), getY(), even);
+                // Col 5: ITEM_DROPPED
+                drawDropStat(id, getX() + getColumnX(5), getY(), even);
+            }
+
+            /**
+             * Get stat value for the given column (0=BLOCK_MINED, 1=ITEM_BROKEN,
+             * 2=ITEM_CRAFTED, 3=ITEM_USED, 4=PICKED_UP, 5=DROPPED).
+             */
+            int getStatValue(int column, net.minecraft.stats.StatFileWriter writer) {
+                StatBase stat = null;
+                switch (column) {
+                    case 0: // BLOCK_MINED
+                        if (isBlock) {
+                            stat = StatList.mineBlockStatArray[itemId];
+                        }
+                        break;
+                    case 1: // ITEM_BROKEN
+                        if (!isBlock) {
+                            stat = StatList.objectBreakStats[itemId];
+                        }
+                        break;
+                    case 2: // ITEM_CRAFTED
+                        stat = StatList.objectCraftStats[itemId];
+                        break;
+                    case 3: // ITEM_USED
+                        stat = StatList.objectUseStats[itemId];
+                        break;
+                    case 4: // ITEM_PICKED_UP
+                        return decok.dfcdvadstf.modernstatistic.ItemStatsTracker.getPickupCount(itemId);
+                    case 5: // ITEM_DROPPED
+                        return decok.dfcdvadstf.modernstatistic.ItemStatsTracker.getDropCount(itemId);
+                }
+                return stat != null ? writer.writeStat(stat) : 0;
+            }
         }
     }
 }

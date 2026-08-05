@@ -55,8 +55,10 @@ import java.util.List;
  * Mixin 现在只负责把 TABBED 模式路由到本界面。
  * </p>
  * <p>
- * The screen is built on a {@link HeaderFooterLayout}: the {@link TabBar} is the
- * header zone, the Done button is the footer zone, and the tab content fills the
+ * The screen is built on a {@link HeaderFooterLayout}: the {@link TabBar} is
+ * the
+ * header zone, the Done button is the footer zone, and the tab content fills
+ * the
  * content zone (set via {@link TabManager#setTabArea}).
  * 界面基于 {@link HeaderFooterLayout} 构建：{@link TabBar} 为 header 区域，
  * Done 按钮为 footer 区域，标签页内容填充内容区（经 {@link TabManager#setTabArea} 设置）。
@@ -263,18 +265,29 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     }
 
     /**
-     * Custom-init each tab: create its GuiSlot (hidden until selected). /
-     * 自定义初始化每个标签页：创建其 GuiSlot（选中前隐藏）。
+     * Custom-init each tab: create its selection list (hidden until selected) and
+     * register it into the screen's widget pipeline so rendering, clicks and the
+     * scroll wheel are dispatched automatically.
+     * <p>
+     * 自定义初始化每个标签页：创建其选择列表（选中前隐藏），并注册进界面的
+     * 组件管线，渲染 / 点击 / 滚轮自动分发。
+     * </p>
      */
     private void initTabs(List<GuiButton> btns) {
         if (tabGeneral instanceof StatsGeneralTab) {
-            ((StatsGeneralTab) tabGeneral).initGui(width, height, btns, statFileWriter);
+            StatsGeneralTab t = (StatsGeneralTab) tabGeneral;
+            t.initGui(width, height, btns, statFileWriter);
+            addRenderableWidget(t.getList());
         }
         if (tabItems instanceof StatsItemsTab) {
-            ((StatsItemsTab) tabItems).initGui(width, height, btns, statFileWriter);
+            StatsItemsTab t = (StatsItemsTab) tabItems;
+            t.initGui(width, height, btns, statFileWriter);
+            addRenderableWidget(t.getList());
         }
         if (tabMobs instanceof StatsMobsTab) {
-            ((StatsMobsTab) tabMobs).initGui(width, height, btns, statFileWriter);
+            StatsMobsTab t = (StatsMobsTab) tabMobs;
+            t.initGui(width, height, btns, statFileWriter);
+            addRenderableWidget(t.getList());
         }
     }
 
@@ -332,12 +345,13 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        // Background + CatFrame renderables + vanilla buttonList (tab scroll buttons)
-        // 背景 + CatFrame 可渲染组件 + 原版按钮列表（标签页滚动按钮）
+        // Background + CatFrame renderables (incl. the tab selection lists) + vanilla
+        // buttonList
+        // 背景 + CatFrame 可渲染组件（含标签页选择列表） + 原版按钮列表
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // Draw the current tab's content (GuiSlot)
-        // 绘制当前标签页内容（GuiSlot）
+        // Draw the current tab's content (rendered by the component pipeline)
+        // 绘制当前标签页内容（由组件管线渲染）
         if (tabManager != null) {
             tabManager.drawScreen(mouseX, mouseY, partialTicks);
         }
@@ -390,8 +404,8 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        // Vanilla buttons + CatFrame component dispatch first
-        // 先处理原版按钮 + CatFrame 组件分发
+        // Vanilla buttons + CatFrame component dispatch (incl. the selection lists)
+        // 先处理原版按钮 + CatFrame 组件分发（含选择列表）
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
         // Tab switching via TabBar navigation (TabButton clicks, active tabs only)
@@ -400,8 +414,8 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
             return;
         }
 
-        // Forward to the current tab (GuiSlot header clicks etc.)
-        // 转发给当前标签页（GuiSlot 表头点击等）
+        // Forward to the current tab (header clicks etc. are handled by the list)
+        // 转发给当前标签页（表头点击等由列表自身处理）
         if (tabManager != null) {
             tabManager.mouseClicked(mouseX, mouseY, mouseButton);
         }
@@ -493,9 +507,8 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         if (!button.enabled)
             return;
 
-        // Delegate to the tab manager (tab switching + the tabs' GuiSlot scroll
-        // buttons)
-        // 委托给标签页管理器（标签切换 + 各标签页 GuiSlot 的滚动按钮）
+        // Delegate to the tab manager (tab switching)
+        // 委托给标签页管理器（标签切换）
         if (tabManager != null) {
             tabManager.actionPerformed(button);
         }

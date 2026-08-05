@@ -1,18 +1,19 @@
 package decok.dfcdvadstf.modernstatistic.gui.tab;
 
 import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
+import decok.dfcdvadstf.catframe.ui.components.Component;
+import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.EntityList;
 import net.minecraft.stats.StatFileWriter;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ import java.util.List;
 public class StatsMobsTab extends AbstractScreenTab {
 
     private StatFileWriter statFileWriter;
-    private MobsSlot slot;
+    private MobsSelectionList list;
 
     public StatsMobsTab() {
         super(107, "stat.mobsButton");
@@ -30,16 +31,27 @@ public class StatsMobsTab extends AbstractScreenTab {
     public void initGui(int width, int height, List<GuiButton> buttonList,
             StatFileWriter writer) {
         this.statFileWriter = writer;
-        this.slot = new MobsSlot(width, height);
-        this.slot.registerScrollButtons(1, 1);
+        this.list = new MobsSelectionList(width, height);
         setVisible(false);
+    }
+
+    /**
+     * The list component, registered into the screen's widget pipeline by
+     * {@code GuiStatics.initTabs} so rendering, clicks and the scroll wheel are
+     * dispatched automatically.
+     * <p>
+     * 列表组件，由 {@code GuiStatics.initTabs} 注册进界面的组件管线，
+     * 渲染 / 点击 / 滚轮自动分发。
+     * </p>
+     */
+    public Component getList() {
+        return list;
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        if (!visible || slot == null)
-            return;
-        slot.drawScreen(mouseX, mouseY, partialTicks);
+        // The list is rendered by the screen's component pipeline (addRenderableWidget)
+        // 列表由界面的组件管线渲染（addRenderableWidget）
     }
 
     @Override
@@ -49,6 +61,8 @@ public class StatsMobsTab extends AbstractScreenTab {
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        // Mouse events are dispatched by the screen's component pipeline
+        // 鼠标事件由界面的组件管线分发
     }
 
     @Override
@@ -56,125 +70,135 @@ public class StatsMobsTab extends AbstractScreenTab {
     }
 
     @Override
+    public void setVisible(boolean visible) {
+        // Keep the list visibility in sync (TabManager calls this on every switch)
+        // 同步列表可见性（TabManager 每次切换都会调用本方法）
+        super.setVisible(visible);
+        if (list != null) {
+            list.setVisible(visible);
+        }
+    }
+
+    @Override
     public void doLayout(ScreenRectangle rectangle) {
-        // Fill the content zone (between the header/footer separators) with the slot
-        // 用 GuiSlot 填充内容区（Header/Footer 分隔线之间）
-        if (slot != null) {
-            slot.setBounds(rectangle);
+        // Fill the content zone (between the header/footer separators) with the list
+        // 用列表填充内容区（Header/Footer 分隔线之间）
+        if (list != null) {
+            list.updateSizeAndPosition(rectangle.width, rectangle.height,
+                    rectangle.left(), rectangle.top());
         }
     }
 
     /** @return true if the mob list is empty (used to disable the tab button) */
     public boolean isEmpty() {
-        return slot == null || slot.getSize() == 0;
+        return list == null || list.size() == 0;
     }
 
-    // ---- Inner GuiSlot ----
+    // ---- Inner selection list ----
 
-    private class MobsSlot extends GuiSlot {
+    private class MobsSelectionList
+            extends ContainerObjectSelectionList<MobsSelectionList.MobsEntry> {
 
-        private final List<EntityList.EntityEggInfo> mobEntries = new ArrayList<>();
+        /** Screen height at construction time, for the panel background / 构造时的屏幕高度（面板背景用） */
+        private final int screenHeight;
 
-        MobsSlot(int width, int height) {
-            // An inner-class constructor may not reference enclosing fields implicitly
-            // in its super() call, hence the qualified mc reference
-            // 内部类构造器的 super() 调用中不能隐式引用外部类字段，故 mc 使用限定引用
-            super(StatsMobsTab.this.mc, width, height, 22,
-                    height - 35, StatsMobsTab.this.mc.fontRenderer.FONT_HEIGHT * 4);
-            setShowSelectionBox(false);
+        /** @return the number of entries / 条目数量 */
+        public int size() {
+            return getItemCount();
+        }
+
+        MobsSelectionList(int width, int height) {
+            // Row height = 4 lines of text (name + two stat lines with spacing),
+            // mirroring the vanilla mobs slot
+            // 行高 = 4 行文本（名称 + 两行统计并留空行），与原版生物槽一致
+            super(width, height, 22,
+                    StatsMobsTab.this.mc.fontRenderer.FONT_HEIGHT * 4);
+            this.screenHeight = height;
 
             for (Object obj : EntityList.entityEggs.values()) {
                 EntityList.EntityEggInfo info = (EntityList.EntityEggInfo) obj;
                 if (statFileWriter.writeStat(info.field_151512_d) > 0
                         || statFileWriter.writeStat(info.field_151513_e) > 0) {
-                    mobEntries.add(info);
+                    addEntry(new MobsEntry(info));
                 }
             }
         }
 
-        void setBounds(ScreenRectangle rectangle) {
-            // GuiSlot keeps width/height fixed at construction time (the screen size),
-            // only the visible scroll area bounds are updated by the layout
-            // GuiSlot 的 width/height 在构造时固定（屏幕尺寸），布局只更新可见滚动区边界
-            this.left = rectangle.left();
-            this.top = rectangle.top();
-            this.right = rectangle.right();
-            this.bottom = rectangle.bottom();
-        }
-
         @Override
-        protected int getSize() {
-            return mobEntries.size();
-        }
-
-        @Override
-        protected void elementClicked(int index, boolean doubleClick,
-                int mouseX, int mouseY) {
-        }
-
-        @Override
-        protected boolean isSelected(int index) {
-            return false;
-        }
-
-        @Override
-        protected int getContentHeight() {
-            return getSize() * mc.fontRenderer.FONT_HEIGHT * 4;
-        }
-
-        @Override
-        protected void drawContainerBackground(Tessellator tessellator) {
+        protected void renderBackground(int mouseX, int mouseY, float partialTicks) {
+            // Panel background (bottom strip) + tiled dark over the visible list area,
+            // mirroring the vanilla slot's drawBackground/drawContainerBackground pair
+            // 面板背景（底部条带）+ 可见列表区的平铺深色纹理，
+            // 与原版槽的 drawBackground/drawContainerBackground 组合一致
+            ContentPanelRenderer.drawPanelBackground(0, getY() + 2, getWidth(),
+                    screenHeight - 35);
             mc.getTextureManager().bindTexture(Gui.optionsBackground);
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             float f1 = 32.0F;
-            int scrolled = getAmountScrolled();
-            tessellator.startDrawingQuads();
-            tessellator.setColorOpaque_I(4210752);
-            tessellator.addVertexWithUV((double) this.left, (double) this.bottom, 0.0D,
-                    (double) ((float) this.left / f1), (double) ((float) (this.bottom + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.right, (double) this.bottom, 0.0D,
-                    (double) ((float) this.right / f1), (double) ((float) (this.bottom + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.right, (double) this.top, 0.0D,
-                    (double) ((float) this.right / f1), (double) ((float) (this.top + scrolled) / f1));
-            tessellator.addVertexWithUV((double) this.left, (double) this.top, 0.0D, (double) ((float) this.left / f1),
-                    (double) ((float) (this.top + scrolled) / f1));
-            tessellator.draw();
+            int scrolled = (int) scrollAmount();
+            Tessellator tess = Tessellator.instance;
+            tess.startDrawingQuads();
+            tess.setColorOpaque_I(4210752);
+            tess.addVertexWithUV((double) getX(), (double) getBottom(), 0.0D,
+                    (double) ((float) getX() / f1),
+                    (double) ((float) (getBottom() + scrolled) / f1));
+            tess.addVertexWithUV((double) getRight(), (double) getBottom(), 0.0D,
+                    (double) ((float) getRight() / f1),
+                    (double) ((float) (getBottom() + scrolled) / f1));
+            tess.addVertexWithUV((double) getRight(), (double) getY(), 0.0D,
+                    (double) ((float) getRight() / f1),
+                    (double) ((float) (getY() + scrolled) / f1));
+            tess.addVertexWithUV((double) getX(), (double) getY(), 0.0D,
+                    (double) ((float) getX() / f1),
+                    (double) ((float) (getY() + scrolled) / f1));
+            tess.draw();
         }
 
-        @Override
-        protected void drawBackground() {
-            ContentPanelRenderer.drawPanelBackground(0, 24, width, height - 35);
-        }
+        private class MobsEntry extends ContainerObjectSelectionList.Entry<MobsEntry> {
 
-        @Override
-        protected void drawSlot(int index, int x, int y, int slotHeight,
-                Tessellator tess, int mouseX, int mouseY) {
-            EntityList.EntityEggInfo info = mobEntries.get(index);
-            String name = I18n.format(
-                    "entity." + EntityList.getStringFromID(info.spawnedID) + ".name");
-            int kills = statFileWriter.writeStat(info.field_151512_d);
-            int killedBy = statFileWriter.writeStat(info.field_151513_e);
-            String killsText = I18n.format(
-                    "stat.entityKills", Integer.valueOf(kills), name);
-            String killedByText = I18n.format(
-                    "stat.entityKilledBy", name, Integer.valueOf(killedBy));
+            private final EntityList.EntityEggInfo info;
 
-            if (kills == 0) {
-                killsText = I18n.format("stat.entityKills.none", name);
-            }
-            if (killedBy == 0) {
-                killedByText = I18n.format("stat.entityKilledBy.none", name);
+            MobsEntry(EntityList.EntityEggInfo info) {
+                this.info = info;
             }
 
-            int fh = mc.fontRenderer.FONT_HEIGHT;
-            // GuiScreen.drawString is protected and the host is not necessarily a GuiStats;
-            // drawStringWithShadow is its exact equivalent
-            // GuiScreen.drawString 是 protected 且宿主不一定是 GuiStats；drawStringWithShadow 与之完全等价
-            mc.fontRenderer.drawStringWithShadow(name, x + 2 - 10, y + 1, 16777215);
-            mc.fontRenderer.drawStringWithShadow(killsText, x + 2,
-                    y + 1 + fh, kills == 0 ? 6316128 : 9474192);
-            mc.fontRenderer.drawStringWithShadow(killedByText, x + 2,
-                    y + 1 + fh * 2, killedBy == 0 ? 6316128 : 9474192);
+            @Override
+            public List<? extends Component> children() {
+                // This entry has no child components
+                // 本条目没有子组件
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void renderContent(int mouseX, int mouseY, boolean hovered,
+                    float partialTicks) {
+                String name = I18n.format(
+                        "entity." + EntityList.getStringFromID(info.spawnedID) + ".name");
+                int kills = statFileWriter.writeStat(info.field_151512_d);
+                int killedBy = statFileWriter.writeStat(info.field_151513_e);
+                String killsText = I18n.format(
+                        "stat.entityKills", Integer.valueOf(kills), name);
+                String killedByText = I18n.format(
+                        "stat.entityKilledBy", name, Integer.valueOf(killedBy));
+
+                if (kills == 0) {
+                    killsText = I18n.format("stat.entityKills.none", name);
+                }
+                if (killedBy == 0) {
+                    killedByText = I18n.format("stat.entityKilledBy.none", name);
+                }
+
+                int fh = minecraft.fontRenderer.FONT_HEIGHT;
+                // GuiScreen.drawString is protected and the host is not necessarily a GuiStats;
+                // drawStringWithShadow is its exact equivalent
+                // GuiScreen.drawString 是 protected 且宿主不一定是 GuiStats；drawStringWithShadow 与之完全等价
+                minecraft.fontRenderer.drawStringWithShadow(name,
+                        getX() + 2 - 10, getY() + 1, 16777215);
+                minecraft.fontRenderer.drawStringWithShadow(killsText, getX() + 2,
+                        getY() + 1 + fh, kills == 0 ? 6316128 : 9474192);
+                minecraft.fontRenderer.drawStringWithShadow(killedByText, getX() + 2,
+                        getY() + 1 + fh * 2, killedBy == 0 ? 6316128 : 9474192);
+            }
         }
     }
 }

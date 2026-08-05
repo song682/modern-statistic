@@ -1,0 +1,13 @@
+{
+  "package": "decok.dfcdvadstf.modernstatistic.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.modernstatistic.refmap.json",
+  "mixins": [
+    "MixinItemInWorldManager"
+  ],
+  "client": [
+    "MixinGuiStats"
+  ],
+  "required": true,
+  "minVersion": "0.8.5"
+}

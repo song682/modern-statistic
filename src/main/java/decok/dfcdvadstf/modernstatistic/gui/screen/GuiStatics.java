@@ -123,6 +123,9 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     /** The currently visible tab / 当前可见的标签页 */
     protected AbstractScreenTab currentTab;
 
+    /** Done button — closes the screen back to the parent / 完成按钮——关闭界面返回父界面 */
+    private Button doneButton;
+
     /**
      * Pending Wiki URL for the GuiConfirmOpenLink confirmation flow (BSS pattern) /
      * 待确认的 Wiki 链接（BSS 模式）
@@ -220,7 +223,7 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // Its position is managed by the layout's footer zone (centered).
         // 完成按钮——CatFrame Button，使用原版纹理（与被替换的原版 GuiButton 外观一致）；
         // 按下回调返回父界面。位置由布局的 footer 区域管理（居中）。
-        Button doneButton = Button.builder(Text.translatable("gui.done"),
+        doneButton = Button.builder(Text.translatable("gui.done"),
                 b -> this.mc.displayGuiScreen(parent))
                 .width(280)
                 .height(20)
@@ -408,9 +411,27 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // 先处理原版按钮 + CatFrame 组件分发（含选择列表）
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
+        // Overlay clicks (right-click popup menus) — mirror TBetterStatsScreen
+        // Overlay 点击（右键弹出菜单）——与 TBetterStatsScreen 一致
+        if (OverlayManager.INSTANCE.handleMouseClick(mouseX, mouseY, mouseButton)) {
+            return;
+        }
+
         // Tab switching via TabBar navigation (TabButton clicks, active tabs only)
         // 通过 TabBar 导航处理标签切换（TabButton 点击，仅可用标签）
         if (handleTabClick(mouseX, mouseY, mouseButton)) {
+            return;
+        }
+
+        // Footer action buttons (Done). The super call above only reaches the
+        // vanilla buttonList — the CatFrame Screen dispatch is invisible to javac
+        // (the released jar reobfs it to func_73864_a), so the CatFrame Button needs
+        // an explicit forward.
+        // 底部操作按钮（Done）。上面的 super 调用只处理原版 buttonList——CatFrame 的
+        // Screen 分发对 javac 不可见（发布的 jar 将其 reobf 为 func_73864_a），
+        // 故 CatFrame Button 需要显式转发。
+        if (doneButton != null && doneButton.isMouseOver(mouseX, mouseY)) {
+            doneButton.mouseClicked(mouseX, mouseY, mouseButton);
             return;
         }
 

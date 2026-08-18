@@ -17,15 +17,12 @@ import decok.dfcdvadstf.modernstatistic.gui.tab.ModernStatisticTabBar;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiYesNoCallback;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.stats.StatFileWriter;
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
 
 import java.util.Arrays;
 import java.util.List;
@@ -349,6 +346,22 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
 
     // ==================== Rendering ====================
 
+    /**
+     * Draw the vanilla dirt background over the whole screen via
+     * {@link GuiScreen#drawBackground(int)} — the same way the vanilla stats screen
+     * (GuiStats extends GuiScreen) draws it. The nav bar / content black fills are
+     * drawn on top later, leaving the footer zone on the dirt texture.
+     * <p>
+     * 整个界面用 {@link GuiScreen#drawBackground(int)} 绘制原版泥土背景——与原版统计界面
+     * （GuiStats extends GuiScreen）一致。导航栏 / 内容区的黑色背景随后绘制在其上，
+     * 因此 Footer 区域最终显示泥土纹理。
+     * </p>
+     */
+    @Override
+    protected void renderBackground(int mouseX, int mouseY, float partialTicks) {
+        this.drawBackground(0);
+    }
+
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         // Background + CatFrame renderables (incl. the tab selection lists) + vanilla
@@ -368,11 +381,6 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
             tabBar.drawNavButtons(mouseX, mouseY, partialTicks, tabManager);
         }
 
-        // Footer background — vanilla dirt texture (options_background), like the
-        // vanilla stats screen bottom bar
-        // Footer 背景——原版泥土纹理（options_background），与原版统计界面底部一致
-        drawFooterBackground();
-
         // Footer separator — above the bottom bar
         // 底部 Footer 分隔线——在底栏上方
         ContentPanelRenderer.drawFooterSeparator(0, height - FOOTER_OFFSET, width);
@@ -384,33 +392,6 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         // Render all registered overlays (e.g. right-click popup menu)
         // 渲染所有已注册的 Overlay（如右键弹出菜单）
         OverlayManager.INSTANCE.renderAll(mouseX, mouseY, partialTicks);
-    }
-
-    /**
-     * Draw the vanilla dirt background (options_background) over the footer zone,
-     * mirroring {@link GuiScreen#drawBackground(int)} but clipped to the bottom bar.
-     * The UVs keep the texture continuous with a full-screen draw.
-     * <p>
-     * 在 Footer 区域绘制原版泥土背景（options_background），复刻
-     * {@link GuiScreen#drawBackground(int)} 的画法但只覆盖底部栏。
-     * UV 与全屏绘制保持一致，保证纹理连续。
-     * </p>
-     */
-    private void drawFooterBackground() {
-        GL11.glDisable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_FOG);
-        Tessellator tessellator = Tessellator.instance;
-        this.mc.getTextureManager().bindTexture(Gui.optionsBackground);
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        float f = 32.0F;
-        int y = height - FOOTER_OFFSET;
-        tessellator.startDrawingQuads();
-        tessellator.setColorOpaque_I(4210752);
-        tessellator.addVertexWithUV(0.0D, (double) this.height, 0.0D, 0.0D, (double) ((float) this.height / f));
-        tessellator.addVertexWithUV((double) this.width, (double) this.height, 0.0D, (double) ((float) this.width / f), (double) ((float) this.height / f));
-        tessellator.addVertexWithUV((double) this.width, (double) y, 0.0D, (double) ((float) this.width / f), (double) ((float) y / f));
-        tessellator.addVertexWithUV(0.0D, (double) y, 0.0D, 0.0D, (double) ((float) y / f));
-        tessellator.draw();
     }
 
     /**

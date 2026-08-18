@@ -17,6 +17,7 @@ import decok.dfcdvadstf.modernstatistic.gui.tab.ModernStatisticTabBar;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
@@ -364,6 +365,10 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         if (tabBar != null && tabManager != null) {
             tabBar.drawNavButtons(mouseX, mouseY, partialTicks, tabManager);
         }
+
+        // Footer background — opaque black, matching the nav bar / content style
+        // Footer 背景——不透明黑色，与导航栏 / 内容区风格一致
+        Gui.drawRect(0, height - FOOTER_OFFSET, width, height, 0xFF000000);
 
         // Footer separator — above the bottom bar
         // 底部 Footer 分隔线——在底栏上方

@@ -7,7 +7,7 @@ buildscript {
         }
         maven {
             name = "forge"
-            url = "https://files.minecraftforge.net/maven"
+            url = "https://maven.minecraftforge.net"
         }
         maven {
             name = "sonatype"
@@ -97,7 +97,7 @@ dependencies {
 
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
 
-    implementation "com.github.song682:CatFrame:v0.6.2"
+    implementation "com.github.song682:CatFrame:v0.7.1.1"
 }
 
 def dependenciesList = []

@@ -1,18 +1,14 @@
 package decok.dfcdvadstf.modernstatistic.gui.tab;
 
-import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
-import decok.dfcdvadstf.catframe.ui.components.Component;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
+import decok.dfcdvadstf.catframe.ui.components.events.GuiEventListener;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import decok.dfcdvadstf.modernstatistic.gui.list.ModernSelectionList;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.EntityList;
 import net.minecraft.stats.StatFileWriter;
-import org.lwjgl.opengl.GL11;
 
 import java.util.Collections;
 import java.util.List;
@@ -45,7 +41,7 @@ public class StatsMobsTab extends AbstractScreenTab {
      * 渲染 / 点击 / 滚轮自动分发。
      * </p>
      */
-    public Component getList() {
+    public GuiEventListener getList() {
         return list;
     }
 
@@ -85,8 +81,8 @@ public class StatsMobsTab extends AbstractScreenTab {
         // Fill the content zone (between the header/footer separators) with the list
         // 用列表填充内容区（Header/Footer 分隔线之间）
         if (list != null) {
-            list.updateSizeAndPosition(rectangle.width, rectangle.height,
-                    rectangle.left(), rectangle.top());
+            list.layoutInContentZone(rectangle.left(), rectangle.top(),
+                    rectangle.width, rectangle.bottom(), 0);
         }
     }
 
@@ -100,19 +96,12 @@ public class StatsMobsTab extends AbstractScreenTab {
     private class MobsSelectionList
             extends ModernSelectionList<MobsSelectionList.MobsEntry> {
 
-        /**
-         * Screen height at construction time, for the panel background /
-         * 构造时的屏幕高度（面板背景用）
-         */
-        private final int screenHeight;
-
         MobsSelectionList(int width, int height) {
             // Row height = 4 lines of text (name + two stat lines with spacing),
             // mirroring the vanilla mobs slot
             // 行高 = 4 行文本（名称 + 两行统计并留空行），与原版生物槽一致
             super(width, height, 22,
                     StatsMobsTab.this.mc.fontRenderer.FONT_HEIGHT * 4);
-            this.screenHeight = height;
 
             for (Object obj : EntityList.entityEggs.values()) {
                 EntityList.EntityEggInfo info = (EntityList.EntityEggInfo) obj;
@@ -121,36 +110,6 @@ public class StatsMobsTab extends AbstractScreenTab {
                     addEntry(new MobsEntry(info));
                 }
             }
-        }
-
-        @Override
-        protected void renderBackground(int mouseX, int mouseY, float partialTicks) {
-            // Panel background (bottom strip) + tiled dark over the visible list area,
-            // mirroring the vanilla slot's drawBackground/drawContainerBackground pair
-            // 面板背景（底部条带）+ 可见列表区的平铺深色纹理，
-            // 与原版槽的 drawBackground/drawContainerBackground 组合一致
-            ContentPanelRenderer.drawPanelBackground(0, getY() + 2, getWidth(),
-                    screenHeight - 35);
-            mc.getTextureManager().bindTexture(Gui.optionsBackground);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-            float f1 = 32.0F;
-            int scrolled = (int) scrollAmount();
-            Tessellator tess = Tessellator.instance;
-            tess.startDrawingQuads();
-            tess.setColorOpaque_I(4210752);
-            tess.addVertexWithUV((double) getX(), (double) getBottom(), 0.0D,
-                    (double) ((float) getX() / f1),
-                    (double) ((float) (getBottom() + scrolled) / f1));
-            tess.addVertexWithUV((double) getRight(), (double) getBottom(), 0.0D,
-                    (double) ((float) getRight() / f1),
-                    (double) ((float) (getBottom() + scrolled) / f1));
-            tess.addVertexWithUV((double) getRight(), (double) getY(), 0.0D,
-                    (double) ((float) getRight() / f1),
-                    (double) ((float) (getY() + scrolled) / f1));
-            tess.addVertexWithUV((double) getX(), (double) getY(), 0.0D,
-                    (double) ((float) getX() / f1),
-                    (double) ((float) (getY() + scrolled) / f1));
-            tess.draw();
         }
 
         private class MobsEntry extends ContainerObjectSelectionList.Entry<MobsEntry> {
@@ -162,7 +121,7 @@ public class StatsMobsTab extends AbstractScreenTab {
             }
 
             @Override
-            public List<? extends Component> children() {
+            public List<? extends GuiEventListener> children() {
                 // This entry has no child components
                 // 本条目没有子组件
                 return Collections.emptyList();

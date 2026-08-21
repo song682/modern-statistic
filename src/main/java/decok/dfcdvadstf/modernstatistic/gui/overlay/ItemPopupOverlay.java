@@ -1,5 +1,6 @@
 package decok.dfcdvadstf.modernstatistic.gui.overlay;
 
+import decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor;
 import decok.dfcdvadstf.catframe.ui.components.AbstractComponent;
 import decok.dfcdvadstf.catframe.ui.overlay.Overlay;
 import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
@@ -104,7 +105,7 @@ public class ItemPopupOverlay extends AbstractComponent implements Overlay {
     // ──── Render ────
 
     @Override
-    public void render(int mouseX, int mouseY, float partialTicks) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
         if (!visible) return;
 
         // Background

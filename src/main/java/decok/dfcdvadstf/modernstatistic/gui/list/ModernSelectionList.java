@@ -1,6 +1,10 @@
 package decok.dfcdvadstf.modernstatistic.gui.list;
 
+import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
+import decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.Tessellator;
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -22,6 +26,12 @@ import org.lwjgl.opengl.GL11;
  * pixels without the GUI scale, cutting off most of the list content on scales
  * &gt; 1; here the scale is derived from {@code displayWidth / width}, matching the
  * high-version vanilla ScissorTest.</li>
+ * <li>{@link #layoutInContentZone} anchors the list in the content zone between
+ * the header/footer separators and the shared {@link #renderBackground} fills
+ * exactly that zone, keeping the middle of the screen fully painted. Tabs that
+ * need a column header add it as the first scrollable entry (vanilla
+ * HeaderEntry style), which sidesteps the framework pinning the first entry at
+ * {@code getY() + 2} underneath a drawn-on header.</li>
  * </ul>
  *
  * <p>
@@ -37,6 +47,10 @@ import org.lwjgl.opengl.GL11;
  * <li>{@code AbstractScrollArea.enableScissor} 用窗口像素表达裁剪框却忘了乘以
  * GUI 缩放，缩放 &gt; 1 时列表内容大部分被裁掉；这里按
  * {@code displayWidth / width} 换算缩放，与高版本原版 ScissorTest 一致。</li>
+ * <li>{@link #layoutInContentZone} 把列表锚定在 Header/Footer 分隔线之间的内容区，
+ * 共用的 {@link #renderBackground} 恰好填满该区域，保证屏幕中间部分被完整填充。
+ * 需要列表头的标签页将其作为第一个可滚动条目（原版 HeaderEntry 做法），
+ * 避开框架把首个条目固定在 {@code getY() + 2} 而被绘制出来的表头盖住的问题。</li>
  * </ul>
  */
 public abstract class ModernSelectionList<E extends ContainerObjectSelectionList.Entry<E>>
@@ -48,9 +62,48 @@ public abstract class ModernSelectionList<E extends ContainerObjectSelectionList
     private double dragStartScroll;
     /** mouse Y captured at drag start / 拖动开始时的鼠标 Y */
     private int dragStartMouseY;
+    /**
+     * Top of the content zone (header separator Y). The scrollable component may
+     * start below it when a header band is reserved, but the background always
+     * fills from here down to the footer separator.
+     * 内容区顶部（Header 分隔线 Y）。预留表头带时可滚动组件从其下方开始，
+     * 但背景始终从这里填充到 Footer 分隔线。
+     */
+    private int zoneTop;
 
     public ModernSelectionList(int width, int height, int y, int itemHeight) {
         super(width, height, y, itemHeight);
+        this.zoneTop = y;
+    }
+
+    /**
+     * Lay the list out inside the content zone between the header/footer
+     * separators: the scrollable component (rows, scissor, scrollbar) starts
+     * below the reserved header band, while {@link #zoneTop} keeps the shared
+     * background filling the zone completely.
+     * <p>
+     * 在 Header/Footer 分隔线之间的内容区内布局列表：可滚动组件（行、裁剪、
+     * 滚动条）从预留表头带之下开始，而 {@link #zoneTop} 保证共用背景完整
+     * 填满内容区。
+     * </p>
+     *
+     * @param x            content zone left / 内容区左缘
+     * @param zoneTop      content zone top (header separator Y) / 内容区顶部
+     * @param width        content zone width / 内容区宽度
+     * @param zoneBottom   content zone bottom (footer separator Y) / 内容区底部
+     * @param headerHeight fixed header band height to reserve / 预留的固定表头带高度
+     */
+    public void layoutInContentZone(int x, int zoneTop, int width, int zoneBottom,
+            int headerHeight) {
+        this.zoneTop = zoneTop;
+        updateSizeAndPosition(width,
+                Math.max(0, zoneBottom - zoneTop - headerHeight),
+                x, zoneTop + headerHeight);
+    }
+
+    /** @return top of the content zone the list fills / 列表填充的内容区顶部 */
+    public int getZoneTop() {
+        return zoneTop;
     }
 
     @Override
@@ -58,6 +111,41 @@ public abstract class ModernSelectionList<E extends ContainerObjectSelectionList
         // Pin the scrollbar to the container's right edge (vanilla 1.7.10 look)
         // 滚动条固定在容器右缘（原版 1.7.10 外观）
         return getX() + width - scrollbarWidth();
+    }
+
+    @Override
+    protected void renderBackground(GuiGraphicsExtractor graphics, int mouseX,
+            int mouseY, float partialTicks) {
+        // Panel background between the separators + scrolling dark tile over the
+        // whole content zone (header band included), mirroring the vanilla slot's
+        // drawBackground/drawContainerBackground pair. Filling from zoneTop (not
+        // getY()) keeps the middle of the screen painted even when the scrollable
+        // component starts below a header band.
+        // 分隔线之间的面板背景 + 覆盖整个内容区（含表头带）的滚动深色平铺纹理，
+        // 与原版槽的 drawBackground/drawContainerBackground 组合一致。从 zoneTop
+        // （而非 getY()）开始填充，保证预留表头带时屏幕中间仍被完整填充。
+        ContentPanelRenderer.drawPanelBackground(getX(), zoneTop + 2, getWidth(),
+                getBottom() - zoneTop - 2);
+        minecraft.getTextureManager().bindTexture(Gui.optionsBackground);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        float f1 = 32.0F;
+        int scrolled = (int) scrollAmount();
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.setColorOpaque_I(4210752);
+        tess.addVertexWithUV((double) getX(), (double) getBottom(), 0.0D,
+                (double) ((float) getX() / f1),
+                (double) ((float) (getBottom() + scrolled) / f1));
+        tess.addVertexWithUV((double) getRight(), (double) getBottom(), 0.0D,
+                (double) ((float) getRight() / f1),
+                (double) ((float) (getBottom() + scrolled) / f1));
+        tess.addVertexWithUV((double) getRight(), (double) zoneTop, 0.0D,
+                (double) ((float) getRight() / f1),
+                (double) ((float) (zoneTop + scrolled) / f1));
+        tess.addVertexWithUV((double) getX(), (double) zoneTop, 0.0D,
+                (double) ((float) getX() / f1),
+                (double) ((float) (zoneTop + scrolled) / f1));
+        tess.draw();
     }
 
     @Override

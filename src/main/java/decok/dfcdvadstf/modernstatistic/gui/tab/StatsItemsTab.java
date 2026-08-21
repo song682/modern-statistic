@@ -1,8 +1,8 @@
 package decok.dfcdvadstf.modernstatistic.gui.tab;
 
-import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
-import decok.dfcdvadstf.catframe.ui.components.Component;
+import decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
+import decok.dfcdvadstf.catframe.ui.components.events.GuiEventListener;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import decok.dfcdvadstf.modernstatistic.gui.list.ModernSelectionList;
@@ -26,7 +26,9 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +89,7 @@ public class StatsItemsTab extends AbstractScreenTab {
      * 渲染 / 点击 / 滚轮自动分发。
      * </p>
      */
-    public Component getList() {
+    public GuiEventListener getList() {
         return list;
     }
 
@@ -124,41 +126,48 @@ public class StatsItemsTab extends AbstractScreenTab {
 
     @Override
     public void doLayout(ScreenRectangle rectangle) {
-        // Fill the content zone (between the header/footer separators) with the list
-        // 用列表填充内容区（Header/Footer 分隔线之间）
+        // Fill the content zone (between the header/footer separators) with the
+        // list; the column header is itself the first scrollable entry
+        // (HeaderEntry, vanilla style), so no fixed band is reserved here.
+        // 用列表填充内容区（Header/Footer 分隔线之间）；列表头本身就是第一个
+        // 可滚动条目（HeaderEntry，原版做法），因此这里无需预留固定表头带。
         if (list != null) {
-            list.updateSizeAndPosition(rectangle.width, rectangle.height,
-                    rectangle.left(), rectangle.top());
+            list.layoutInContentZone(rectangle.left(), rectangle.top(),
+                    rectangle.width, rectangle.bottom(), 0);
         }
     }
 
     public boolean isEmpty() {
-        return list == null || list.size() == 0;
+        // Only the header entry present => no data rows
+        // 只剩下表头条目 => 没有数据行
+        return list == null || !list.hasData();
     }
 
     // ==================== Inner selection list ====================
 
     private class MergedSelectionList
-            extends ModernSelectionList<MergedSelectionList.MergedEntry> {
+            extends ModernSelectionList<MergedSelectionList.BaseEntry> {
 
         /** Header height in pixels / 列表头高度（像素） */
-        private static final int HEADER_HEIGHT = 20;
+        static final int HEADER_HEIGHT = 20;
 
-        /**
-         * Screen height at construction time, for the panel background /
-         * 构造时的屏幕高度（面板背景用）
-         */
-        private final int screenHeight;
         // Column order matching high-version StatsScreen:
         // 0=BLOCK_MINED, 1=ITEM_BROKEN, 2=ITEM_CRAFTED, 3=ITEM_USED, 4=ITEM_PICKED_UP,
         // 5=ITEM_DROPPED
         private int sortColumn = -1;
         private int sortDirection = -1; // 1=ascending, -1=descending
-        private int hoveredHeader = -1;
+        /** Column-header entry, always the first entry, like vanilla / 列表头条目，与原版一样恒为首个条目 */
+        private final HeaderEntry headerEntry;
 
         MergedSelectionList(int width, int height) {
             super(width, height, 22, 20);
-            this.screenHeight = height;
+            // The header is the first scrollable entry exactly like the
+            // high-version StatsScreen; HEADER_HEIGHT equals the default entry
+            // height, so replaceEntries re-adds it without special handling.
+            // 表头是高版本 StatsScreen 那样的第一个可滚动条目；HEADER_HEIGHT
+            // 与默认条目高度一致，replaceEntries 重建时无需特殊处理。
+            headerEntry = new HeaderEntry();
+            addEntry(headerEntry, HEADER_HEIGHT);
             buildEntries();
             sortById();
         }
@@ -241,12 +250,43 @@ public class StatsItemsTab extends AbstractScreenTab {
         }
 
         private void sortById() {
-            sort(new Comparator<MergedEntry>() {
+            sortRows(new Comparator<MergedEntry>() {
                 @Override
                 public int compare(MergedEntry a, MergedEntry b) {
                     return Integer.compare(a.itemId, b.itemId);
                 }
             });
+        }
+
+        /**
+         * Sort the data rows while the header entry stays pinned on top — the
+         * counterpart of vanilla's {@code clearEntriesExcept(getFirst())} + re-add.
+         * <p>
+         * 只排序数据行，表头条目恒定在最上方——对应原版的
+         * {@code clearEntriesExcept(getFirst())} + 重新添加。
+         * </p>
+         */
+        private void sortRows(Comparator<MergedEntry> dataSorter) {
+            List<BaseEntry> rows = new ArrayList<BaseEntry>();
+            for (BaseEntry entry : children()) {
+                if (entry != headerEntry) {
+                    rows.add(entry);
+                }
+            }
+            Collections.sort(rows, new Comparator<BaseEntry>() {
+                @Override
+                public int compare(BaseEntry a, BaseEntry b) {
+                    // Only data rows are collected above / 上面只会收集数据行
+                    return dataSorter.compare((MergedEntry) a, (MergedEntry) b);
+                }
+            });
+            rows.add(0, headerEntry);
+            replaceEntries(rows);
+        }
+
+        /** @return true if at least one data row exists / 是否存在至少一个数据条目 */
+        boolean hasData() {
+            return getItemCount() > 1;
         }
 
         // ---- Geometry ----
@@ -267,87 +307,7 @@ public class StatsItemsTab extends AbstractScreenTab {
 
         // ---- Background ----
 
-        @Override
-        protected void renderBackground(int mouseX, int mouseY, float partialTicks) {
-            // Panel background (bottom strip) + tiled dark over the visible list area,
-            // mirroring the vanilla slot's drawBackground/drawContainerBackground pair
-            // 面板背景（底部条带）+ 可见列表区的平铺深色纹理，
-            // 与原版槽的 drawBackground/drawContainerBackground 组合一致
-            ContentPanelRenderer.drawPanelBackground(0, getY() + 2, getWidth(),
-                    screenHeight - 35);
-            mc.getTextureManager().bindTexture(Gui.optionsBackground);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-            float f1 = 32.0F;
-            int scrolled = (int) scrollAmount();
-            Tessellator tess = Tessellator.instance;
-            tess.startDrawingQuads();
-            tess.setColorOpaque_I(4210752);
-            tess.addVertexWithUV((double) getX(), (double) getBottom(), 0.0D,
-                    (double) ((float) getX() / f1),
-                    (double) ((float) (getBottom() + scrolled) / f1));
-            tess.addVertexWithUV((double) getRight(), (double) getBottom(), 0.0D,
-                    (double) ((float) getRight() / f1),
-                    (double) ((float) (getBottom() + scrolled) / f1));
-            tess.addVertexWithUV((double) getRight(), (double) getY(), 0.0D,
-                    (double) ((float) getRight() / f1),
-                    (double) ((float) (getY() + scrolled) / f1));
-            tess.addVertexWithUV((double) getX(), (double) getY(), 0.0D,
-                    (double) ((float) getX() / f1),
-                    (double) ((float) (getY() + scrolled) / f1));
-            tess.draw();
-        }
-
-        @Override
-        protected void renderListItems(int mouseX, int mouseY, float partialTicks) {
-            // Keep each entry's visual row index in sync for the zebra striping
-            // 同步每个条目的视觉行号，用于斑马纹着色
-            int i = 0;
-            for (MergedEntry child : children()) {
-                if (child.getY() + child.getHeight() >= getY()
-                        && child.getY() <= getBottom()) {
-                    child.rowIndex = i;
-                    renderItem(child, mouseX, mouseY, partialTicks);
-                }
-                i++;
-            }
-        }
-
         // ---- Header ----
-
-        @Override
-        protected void renderSeparators() {
-            // Column header — drawn outside the scissor so it never scrolls
-            // 列表头 —— 在 scissor 之外绘制，固定不滚动
-            int rowLeft = getRowLeft();
-
-            for (int col = 0; col < 6; col++) {
-                int colX = rowLeft + getColumnX(col);
-                boolean isHovered = hoveredHeader == col;
-                boolean isModern = COLUMN_USE_MODERN[col];
-
-                // 1. Button background: SLOT texture (u=0,v=0) when hovered, HEADER (u=0,v=18)
-                // when not
-                int bgV = isHovered ? 0 : 18;
-                drawSprite(colX - 18, getY() + 1, 0, bgV);
-
-                // 2. Column icon (shifted +1,+1 when hovered for pressed effect)
-                int iconX = colX - 18 + (isHovered ? 1 : 0);
-                int iconY = getY() + 1 + (isHovered ? 1 : 0);
-                if (isModern) {
-                    drawModernSprite(iconX, iconY, COLUMN_ICON_U[col]);
-                } else {
-                    drawSprite(iconX, iconY, COLUMN_ICON_U[col], COLUMN_ICON_V[col]);
-                }
-            }
-
-            // 3. Sort direction arrow (stats_icons.png row v=0: ARROW_UP(u=18) |
-            // ARROW_DOWN(u=36))
-            if (sortColumn >= 0 && sortColumn < 6) {
-                int arrowU = (sortDirection == 1) ? 36 : 18;
-                drawSprite(rowLeft + getColumnX(sortColumn) - 36, getY() + 1,
-                        arrowU, 0);
-            }
-        }
 
         /** X center of column col (0..5), matching high-version formula: 75 + 40*col */
         private int getColumnX(int col) {
@@ -357,38 +317,19 @@ public class StatsItemsTab extends AbstractScreenTab {
         // ---- Header interaction ----
 
         @Override
-        public void render(int mouseX, int mouseY, float partialTicks) {
-            // Refresh the header hover before the render pipeline draws it
-            // 在渲染管线绘制列表头之前刷新其悬停状态
-            updateHeaderHover(mouseX, mouseY);
-            super.render(mouseX, mouseY, partialTicks);
+        protected void renderWidget(GuiGraphicsExtractor graphics, int mouseX,
+                int mouseY, float partialTicks) {
+            super.renderWidget(graphics, mouseX, mouseY, partialTicks);
             drawTooltip(mouseX, mouseY);
-        }
-
-        private void updateHeaderHover(int mouseX, int mouseY) {
-            hoveredHeader = -1;
-            if (mouseY < getY() || mouseY >= getY() + HEADER_HEIGHT) {
-                return;
-            }
-            int rowLeft = getRowLeft();
-            for (int col = 0; col < 6; col++) {
-                int colLeft = rowLeft + getColumnX(col) - 18;
-                int colRight = rowLeft + getColumnX(col);
-                if (mouseX >= colLeft && mouseX < colRight) {
-                    hoveredHeader = col;
-                    break;
-                }
-            }
         }
 
         @Override
         public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-            // Header click sorts the column; anything else falls through to the
-            // scrollbar/list handling
-            // 表头点击排序；其余交给滚动条 / 列表处理
-            if (mouseButton == 0 && mouseY >= getY()
-                    && mouseY < getY() + HEADER_HEIGHT) {
-                int col = getHeaderColumnAt(mouseX);
+            // A click on the scrolling header entry sorts the column; anything
+            // else falls through to the scrollbar/list handling
+            // 点击随列表滚动的表头条目则按列排序；其余交给滚动条 / 列表处理
+            if (mouseButton == 0 && headerEntry.isMouseOver(mouseX, mouseY)) {
+                int col = getHeaderColumnAt(mouseX, mouseY);
                 if (col >= 0) {
                     sortByColumn(col);
                     mc.getSoundHandler().playSound(
@@ -400,7 +341,15 @@ public class StatsItemsTab extends AbstractScreenTab {
             super.mouseClicked(mouseX, mouseY, mouseButton);
         }
 
-        private int getHeaderColumnAt(int mouseX) {
+        /**
+         * @return column (0..5) under the mouse while it is on the header entry,
+         * otherwise -1 / 鼠标位于表头条目上时返回所在列号（0..5），否则 -1
+         */
+        private int getHeaderColumnAt(int mouseX, int mouseY) {
+            if (mouseY < headerEntry.getY()
+                    || mouseY >= headerEntry.getY() + headerEntry.getHeight()) {
+                return -1;
+            }
             int rowLeft = getRowLeft();
             for (int col = 0; col < 6; col++) {
                 int colLeft = rowLeft + getColumnX(col) - 18;
@@ -433,7 +382,7 @@ public class StatsItemsTab extends AbstractScreenTab {
 
             final int col = sortColumn;
             final int dir = sortDirection;
-            sort(new Comparator<MergedEntry>() {
+            sortRows(new Comparator<MergedEntry>() {
                 @Override
                 public int compare(MergedEntry a, MergedEntry b) {
                     int va = a.getStatValue(col, statFileWriter);
@@ -454,13 +403,15 @@ public class StatsItemsTab extends AbstractScreenTab {
                 return;
             int rowLeft = getRowLeft();
 
-            MergedEntry hoveredEntry = getHovered();
+            BaseEntry hoveredEntry = getHovered();
 
-            // Item icon tooltip
-            if (hoveredEntry != null) {
+            // Item icon tooltip (data rows only — never the header entry)
+            // 物品图标 tooltip（仅数据行 —— 表头条目除外）
+            if (hoveredEntry instanceof MergedEntry) {
+                MergedEntry hoveredRow = (MergedEntry) hoveredEntry;
                 if (mouseX >= rowLeft + 40 && mouseX <= rowLeft + 60) {
                     String name = ("" + I18n.format(
-                            hoveredEntry.item.getUnlocalizedName() + ".name")).trim();
+                            hoveredRow.item.getUnlocalizedName() + ".name")).trim();
                     if (!name.isEmpty()) {
                         drawHoverTooltip(Arrays.asList(name), mouseX, mouseY);
                     }
@@ -468,8 +419,9 @@ public class StatsItemsTab extends AbstractScreenTab {
                 }
             }
 
-            // Header icon tooltips (6 columns)
-            if (hoveredEntry == null && mouseY < getY() + HEADER_HEIGHT) {
+            // Header icon tooltips (6 columns) — the header is the first list entry
+            // 列表头图标 tooltip（6 列）—— 表头即列表第一个条目
+            if (hoveredEntry == headerEntry) {
                 String[] tips = { "stat.mined", "stat.depleted", "stat.crafted",
                         "stat.used", "stat.pickup", "stat.drop" };
                 for (int col = 0; col < 6; col++) {
@@ -620,16 +572,85 @@ public class StatsItemsTab extends AbstractScreenTab {
                     even ? 16777215 : 9474192);
         }
 
+        // ---- Entries ----
+
+        /**
+         * Common entry base — the counterpart of vanilla's abstract
+         * {@code ItemStatisticsList.Entry}; the list holds the header and the
+         * data rows through this type.
+         * <p>
+         * 条目公共基类——对应原版抽象的 {@code ItemStatisticsList.Entry}；
+         * 列表通过该类型同时容纳表头与数据行。
+         * </p>
+         */
+        private abstract class BaseEntry
+                extends ContainerObjectSelectionList.Entry<BaseEntry> {
+        }
+
+        /**
+         * Column header rendered as the first scrollable entry, exactly like the
+         * high-version vanilla StatsScreen's HeaderEntry: it scrolls with the
+         * rows, so it can never cover the first data row.
+         * <p>
+         * 以第一个可滚动条目的形式渲染列表头，与高版本原版 StatsScreen 的
+         * HeaderEntry 完全一致：随行滚动，因此永远不会遮住第一行数据。
+         * </p>
+         */
+        private class HeaderEntry extends BaseEntry {
+
+            @Override
+            public List<? extends GuiEventListener> children() {
+                // The header has no child widgets / 表头没有子组件
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void renderContent(int mouseX, int mouseY, boolean hovered,
+                    float partialTicks) {
+                int headerY = getY();
+                int hoveredCol = getHeaderColumnAt(mouseX, mouseY);
+
+                for (int col = 0; col < 6; col++) {
+                    int colX = getX() + getColumnX(col);
+                    boolean isHovered = hoveredCol == col;
+                    boolean isModern = COLUMN_USE_MODERN[col];
+
+                    // 1. Button background: SLOT texture (u=0,v=0) when hovered,
+                    // HEADER (u=0,v=18) when not
+                    // 按钮背景：悬停时用 SLOT 纹理 (u=0,v=0)，否则 HEADER (u=0,v=18)
+                    int bgV = isHovered ? 0 : 18;
+                    drawSprite(colX - 18, headerY + 1, 0, bgV);
+
+                    // 2. Column icon (shifted +1,+1 when hovered for pressed effect)
+                    // 列图标（悬停时偏移 +1,+1 制造按压效果）
+                    int iconX = colX - 18 + (isHovered ? 1 : 0);
+                    int iconY = headerY + 1 + (isHovered ? 1 : 0);
+                    if (isModern) {
+                        drawModernSprite(iconX, iconY, COLUMN_ICON_U[col]);
+                    } else {
+                        drawSprite(iconX, iconY, COLUMN_ICON_U[col], COLUMN_ICON_V[col]);
+                    }
+                }
+
+                // 3. Sort direction arrow (stats_icons.png row v=0: ARROW_UP(u=18)
+                // | ARROW_DOWN(u=36))
+                // 排序方向箭头（stats_icons.png 第 v=0 行）
+                if (sortColumn >= 0 && sortColumn < 6) {
+                    int arrowU = (sortDirection == 1) ? 36 : 18;
+                    drawSprite(getX() + getColumnX(sortColumn) - 36, headerY + 1,
+                            arrowU, 0);
+                }
+            }
+        }
+
         // ---- Entry ----
 
-        private class MergedEntry extends ContainerObjectSelectionList.Entry<MergedEntry> {
+        private class MergedEntry extends BaseEntry {
 
             final Item item;
             final int itemId;
             final boolean isBlock;
             final int damage;
-            /** Visual row index (current order), refreshed each frame / 视觉行号（当前顺序），每帧刷新 */
-            int rowIndex;
 
             MergedEntry(Item item, int itemId, boolean isBlock) {
                 this(item, itemId, isBlock, 0);
@@ -643,7 +664,7 @@ public class StatsItemsTab extends AbstractScreenTab {
             }
 
             @Override
-            public List<? extends Component> children() {
+            public List<? extends GuiEventListener> children() {
                 // This entry has no child components
                 // 本条目没有子组件
                 return java.util.Collections.emptyList();
@@ -652,7 +673,11 @@ public class StatsItemsTab extends AbstractScreenTab {
             @Override
             public void renderContent(int mouseX, int mouseY, boolean hovered,
                     float partialTicks) {
-                boolean even = rowIndex % 2 == 0;
+                // Zebra striping by the index among all entries, header included —
+                // exactly the vanilla children().indexOf(this) formula
+                // 斑马纹按全部条目（含表头）中的下标取色——与原版
+                // children().indexOf(this) 公式完全一致
+                boolean even = MergedSelectionList.this.children().indexOf(this) % 2 == 0;
                 drawItemIcon(getX() + 40, getY(), item, damage);
                 int id = itemId;
 

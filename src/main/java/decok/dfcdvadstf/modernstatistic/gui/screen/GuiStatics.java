@@ -4,6 +4,7 @@ import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
 import decok.dfcdvadstf.catframe.ui.Text;
 import decok.dfcdvadstf.catframe.ui.components.Button;
 import decok.dfcdvadstf.catframe.ui.components.TabButton;
+import decok.dfcdvadstf.catframe.ui.components.events.GuiEventListener;
 import decok.dfcdvadstf.catframe.ui.components.events.KeyTypedEvent;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.components.tab.Tab;
@@ -23,6 +24,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.stats.StatFileWriter;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 
 import java.util.Arrays;
 import java.util.List;
@@ -125,6 +127,17 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
 
     /** Done button — closes the screen back to the parent / 完成按钮——关闭界面返回父界面 */
     private Button doneButton;
+
+    /**
+     * The three tab selection lists — kept as separate references so the input
+     * events can be forwarded to the visible one explicitly (see
+     * {@link #activeTabList()}).
+     * 三个标签页的选择列表——单独保留引用，以便把输入事件显式转发给可见的那个
+     * （见 {@link #activeTabList()}）。
+     */
+    private GuiEventListener tabListGeneral;
+    private GuiEventListener tabListItems;
+    private GuiEventListener tabListMobs;
 
     /**
      * Pending Wiki URL for the GuiConfirmOpenLink confirmation flow (BSS pattern) /
@@ -269,28 +282,36 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
 
     /**
      * Custom-init each tab: create its selection list (hidden until selected) and
-     * register it into the screen's widget pipeline so rendering, clicks and the
-     * scroll wheel are dispatched automatically.
+     * register it as a RENDER-ONLY component. Input events (clicks, scroll wheel,
+     * drags) are forwarded to the visible list explicitly in the input handlers
+     * below — the released CatFrame jar reobfs the Screen overrides, so the
+     * screen's generic child dispatch never reaches our widgets at runtime (same
+     * reason the Done button is forwarded explicitly).
      * <p>
-     * 自定义初始化每个标签页：创建其选择列表（选中前隐藏），并注册进界面的
-     * 组件管线，渲染 / 点击 / 滚轮自动分发。
+     * 自定义初始化每个标签页：创建其选择列表（选中前隐藏），并注册为仅渲染组件。
+     * 输入事件（点击 / 滚轮 / 拖动）由下方的输入处理器显式转发给可见列表——发布的
+     * CatFrame jar 经过 reobf，界面的通用子组件分发在运行时不会触达这些组件
+     * （与 Done 按钮需要显式转发的原因相同）。
      * </p>
      */
     private void initTabs(List<GuiButton> btns) {
         if (tabGeneral instanceof StatsGeneralTab) {
             StatsGeneralTab t = (StatsGeneralTab) tabGeneral;
             t.initGui(width, height, btns, statFileWriter);
-            addRenderableWidget(t.getList());
+            tabListGeneral = t.getList();
+            addRenderableOnly(tabListGeneral);
         }
         if (tabItems instanceof StatsItemsTab) {
             StatsItemsTab t = (StatsItemsTab) tabItems;
             t.initGui(width, height, btns, statFileWriter);
-            addRenderableWidget(t.getList());
+            tabListItems = t.getList();
+            addRenderableOnly(tabListItems);
         }
         if (tabMobs instanceof StatsMobsTab) {
             StatsMobsTab t = (StatsMobsTab) tabMobs;
             t.initGui(width, height, btns, statFileWriter);
-            addRenderableWidget(t.getList());
+            tabListMobs = t.getList();
+            addRenderableOnly(tabListMobs);
         }
     }
 
@@ -342,6 +363,20 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
         tabManager.setCurrentTab(def, false);
         def.setVisible(true);
         currentTab = def;
+    }
+
+    /**
+     * @return the selection list belonging to the currently visible tab, or
+     * {@code null} before init / 当前可见标签页的选择列表；init 之前为 {@code null}
+     */
+    private GuiEventListener activeTabList() {
+        if (currentTab == tabItems) {
+            return tabListItems;
+        }
+        if (currentTab == tabMobs) {
+            return tabListMobs;
+        }
+        return tabListGeneral;
     }
 
     // ==================== Rendering ====================
@@ -451,10 +486,75 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
             return;
         }
 
-        // Forward to the current tab (header clicks etc. are handled by the list)
-        // 转发给当前标签页（表头点击等由列表自身处理）
-        if (tabManager != null) {
-            tabManager.mouseClicked(mouseX, mouseY, mouseButton);
+        // Forward to the current tab's selection list explicitly: the lists are
+        // render-only components (see initTabs), so the screen's generic child
+        // dispatch never reaches them — same contract as the Done button above.
+        // This is what makes the Items tab's column-header sort buttons clickable.
+        // 显式转发给当前标签页的选择列表：列表是仅渲染组件（见 initTabs），界面的
+        // 通用子组件分发不会触达它们——与上方 Done 按钮同一契约。正是这一步让
+        // 物品页的列头排序按钮可以被点击。
+        GuiEventListener activeList = activeTabList();
+        if (activeList != null && activeList.isMouseOver(mouseX, mouseY)) {
+            activeList.mouseClicked(mouseX, mouseY, mouseButton);
+        }
+    }
+
+    /**
+     * Forward the scroll wheel to the visible tab's selection list. The lists
+     * are render-only components, so the base screen's wheel dispatch (which
+     * only walks registered children) never reaches them.
+     * <p>
+     * 把滚轮事件转发给可见标签页的选择列表。列表是仅渲染组件，基类的滚轮分发
+     * （只遍历已注册子组件）不会触达它们。
+     * </p>
+     */
+    @Override
+    public void handleMouseInput() {
+        super.handleMouseInput();
+        GuiEventListener activeList = activeTabList();
+        if (activeList == null || !activeList.isVisible()) {
+            return;
+        }
+        int wheel = Mouse.getEventDWheel();
+        if (wheel == 0) {
+            return;
+        }
+        int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
+        int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+        if (activeList.isMouseOver(mouseX, mouseY)) {
+            activeList.mouseScrolled(wheel > 0 ? 1 : -1);
+        }
+    }
+
+    /**
+     * Forward drag events to the visible tab's selection list (scrollbar drag).
+     * <p>
+     * 把拖动事件转发给可见标签页的选择列表（滚动条拖动）。
+     * </p>
+     */
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton,
+            long timeSinceLastClick) {
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+        GuiEventListener activeList = activeTabList();
+        if (activeList != null && activeList.isVisible()) {
+            activeList.mouseDrag(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+        }
+    }
+
+    /**
+     * Forward mouse release to the visible tab's selection list (ends scrollbar
+     * dragging).
+     * <p>
+     * 把鼠标释放事件转发给可见标签页的选择列表（结束滚动条拖动）。
+     * </p>
+     */
+    @Override
+    protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        super.mouseMovedOrUp(mouseX, mouseY, state);
+        GuiEventListener activeList = activeTabList();
+        if (activeList != null && activeList.isVisible()) {
+            activeList.mouseReleased(mouseX, mouseY, state);
         }
     }
 

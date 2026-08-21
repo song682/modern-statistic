@@ -37,12 +37,12 @@ public class StatsGeneralTab extends AbstractScreenTab {
     }
 
     /**
-     * The list component, registered into the screen's widget pipeline by
-     * {@code GuiStatics.initTabs} so rendering, clicks and the scroll wheel are
-     * dispatched automatically.
+     * The list component, registered as a render-only component by
+     * {@code GuiStatics.initTabs}; input events (clicks, scroll wheel, drags)
+     * are forwarded to the visible list explicitly by {@code GuiStatics}.
      * <p>
-     * 列表组件，由 {@code GuiStatics.initTabs} 注册进界面的组件管线，
-     * 渲染 / 点击 / 滚轮自动分发。
+     * 列表组件，由 {@code GuiStatics.initTabs} 注册为仅渲染组件；
+     * 输入事件（点击 / 滚轮 / 拖动）由 {@code GuiStatics} 显式转发给可见列表。
      * </p>
      */
     public GuiEventListener getList() {
@@ -51,8 +51,8 @@ public class StatsGeneralTab extends AbstractScreenTab {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        // The list is rendered by the screen's component pipeline (addRenderableWidget)
-        // 列表由界面的组件管线渲染（addRenderableWidget）
+        // The list is rendered by the screen's renderable pipeline (addRenderableOnly)
+        // 列表由界面的渲染管线渲染（addRenderableOnly）
     }
 
     @Override
@@ -62,8 +62,8 @@ public class StatsGeneralTab extends AbstractScreenTab {
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        // Mouse events are dispatched by the screen's component pipeline
-        // 鼠标事件由界面的组件管线分发
+        // Mouse events are forwarded to the visible list explicitly by GuiStatics
+        // 鼠标事件由 GuiStatics 显式转发给可见列表
     }
 
     @Override

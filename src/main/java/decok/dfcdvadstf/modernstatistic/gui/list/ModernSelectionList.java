@@ -27,6 +27,11 @@ import org.lwjgl.opengl.GL11;
  * need a column header add it as the first scrollable entry (vanilla
  * HeaderEntry style), which sidesteps the framework pinning the first entry at
  * {@code getY() + 2} underneath a drawn-on header.</li>
+ * <li>{@link #renderScrollbar} is gated on {@code scrollable()}: the framework
+ * always paints the scrollbar track even when the content fits the visible
+ * area, leaving an empty track beside short lists; here track and thumb are
+ * hidden together unless scrolling is actually possible, mirroring the
+ * high-version vanilla {@code scrollbarVisible()} behaviour.</li>
  * </ul>
  *
  * <p>
@@ -44,6 +49,10 @@ import org.lwjgl.opengl.GL11;
  * 共用的 {@link #renderBackground} 恰好填满该区域，保证屏幕中间部分被完整填充。
  * 需要列表头的标签页将其作为第一个可滚动条目（原版 HeaderEntry 做法），
  * 避开框架把首个条目固定在 {@code getY() + 2} 而被绘制出来的表头盖住的问题。</li>
+ * <li>{@link #renderScrollbar} 以 {@code scrollable()} 作为门控：框架在内容不超出
+ * 可视区域时仍会绘制滚动条轨道，条目少的列表旁边会留下一条空白轨道；这里在
+ * 不可滚动时把轨道与滑块一起隐藏，与高版本原版 {@code scrollbarVisible()} 的
+ * 行为一致。</li>
  * </ul>
  */
 public abstract class ModernSelectionList<E extends ContainerObjectSelectionList.Entry<E>>
@@ -146,6 +155,24 @@ public abstract class ModernSelectionList<E extends ContainerObjectSelectionList
         GL11.glScissor(getX() * scale,
                 minecraft.displayHeight - (getY() + getHeight()) * scale,
                 getWidth() * scale, getHeight() * scale);
+    }
+
+    /**
+     * Hide the scrollbar (track and thumb together) when the content does not
+     * overflow the visible area — the framework would otherwise paint an empty
+     * track beside short lists. Mirrors the high-version vanilla
+     * {@code scrollbarVisible()} gate.
+     * <p>
+     * 内容未超出可视区域时整体隐藏滚动条（轨道 + 滑块）——否则框架会在短列表
+     * 旁边画一条空白轨道。对标高版本原版 {@code scrollbarVisible()} 门控。
+     * </p>
+     */
+    @Override
+    protected void renderScrollbar(int mouseX, int mouseY) {
+        if (!scrollable()) {
+            return;
+        }
+        super.renderScrollbar(mouseX, mouseY);
     }
 
     /**

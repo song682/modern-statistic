@@ -633,10 +633,12 @@ public class StatsItemsTab extends AbstractScreenTab {
                 }
 
                 // 3. Sort direction arrow (stats_icons.png row v=0: ARROW_UP(u=18)
-                // | ARROW_DOWN(u=36))
-                // 排序方向箭头（stats_icons.png 第 v=0 行）
+                // | ARROW_DOWN(u=36)); ascending points up and descending points
+                // down, matching the high-version SORT_UP/SORT_DOWN sprite choice.
+                // 排序方向箭头（stats_icons.png 第 v=0 行）；升序朝上、降序朝下，
+                // 与高版本 SORT_UP/SORT_DOWN 的取法一致。
                 if (sortColumn >= 0 && sortColumn < 6) {
-                    int arrowU = (sortDirection == 1) ? 36 : 18;
+                    int arrowU = (sortDirection == 1) ? 18 : 36;
                     drawSprite(getX() + getColumnX(sortColumn) - 36, headerY + 1,
                             arrowU, 0);
                 }

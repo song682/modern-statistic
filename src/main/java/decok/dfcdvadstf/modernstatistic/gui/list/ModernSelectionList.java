@@ -4,6 +4,7 @@ import decok.dfcdvadstf.catframe.ui.ContentPanelRenderer;
 import decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor;
 import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
 import org.lwjgl.opengl.GL11;
 
@@ -17,8 +18,9 @@ import org.lwjgl.opengl.GL11;
  * <ul>
  * <li>{@code AbstractScrollArea.enableScissor} expresses the clip box in window
  * pixels without the GUI scale, cutting off most of the list content on scales
- * &gt; 1; here the scale is derived from {@code displayWidth / width}, matching the
- * high-version vanilla ScissorTest.</li>
+ * &gt; 1; here the scale is taken from the vanilla {@link ScaledResolution} (the
+ * naive {@code displayWidth / width} division truncates, e.g. 2560/427 gives 5
+ * instead of 6, which clips the bottom rows of the list into a blank band).</li>
  * <li>{@link #layoutInContentZone} anchors the list in the content zone between
  * the header/footer separators and the shared {@link #renderBackground} fills
  * exactly that zone, keeping the middle of the screen fully painted. Tabs that
@@ -34,8 +36,10 @@ import org.lwjgl.opengl.GL11;
  * </p>
  * <ul>
  * <li>{@code AbstractScrollArea.enableScissor} 用窗口像素表达裁剪框却忘了乘以
- * GUI 缩放，缩放 &gt; 1 时列表内容大部分被裁掉；这里按
- * {@code displayWidth / width} 换算缩放，与高版本原版 ScissorTest 一致。</li>
+ * GUI 缩放，缩放 &gt; 1 时列表内容大部分被裁掉；这里改用原版
+ * {@link ScaledResolution} 的缩放系数（直接的 {@code displayWidth / width}
+ * 整数除法会截断，例如 2560/427 得 5 而非 6，会把列表底部若干行裁成
+ * 一条空白带）。</li>
  * <li>{@link #layoutInContentZone} 把列表锚定在 Header/Footer 分隔线之间的内容区，
  * 共用的 {@link #renderBackground} 恰好填满该区域，保证屏幕中间部分被完整填充。
  * 需要列表头的标签页将其作为第一个可滚动条目（原版 HeaderEntry 做法），
@@ -129,13 +133,15 @@ public abstract class ModernSelectionList<E extends ContainerObjectSelectionList
         // GL scissor is in window pixels but the list geometry is in scaled GUI
         // coordinates — the framework version forgets the GUI scale, so on scales
         // > 1 the clip box lands in the wrong place and the content is cut off.
-        // Scale the box here, like the high-version vanilla ScissorTest.
+        // Take the exact vanilla scale factor from ScaledResolution; a plain
+        // displayWidth / width division truncates (2560/427 -> 5, not 6) and
+        // would clip the bottom rows of the list into a blank band.
         // GL 裁剪以窗口像素表达，而列表几何是缩放后的 GUI 坐标——框架版本忘了乘
-        // GUI 缩放，缩放 > 1 时裁剪框错位、内容被裁。这里按缩放修正。
-        int guiWidth = minecraft.currentScreen != null ? minecraft.currentScreen.width : width;
-        // displayWidth / guiWidth == the GUI scale (guiWidth = displayWidth / scale)
-        // GUI 缩放 = displayWidth / guiWidth（guiWidth 即缩放后的 GUI 宽）
-        int scale = guiWidth > 0 ? Math.max(1, minecraft.displayWidth / guiWidth) : 1;
+        // GUI 缩放，缩放 > 1 时裁剪框错位、内容被裁。这里用 ScaledResolution 的
+        // 精确缩放系数；直接 displayWidth / width 会截断（2560/427 得 5 而非 6），
+        // 把列表底部若干行裁成空白带。
+        int scale = new ScaledResolution(minecraft, minecraft.displayWidth,
+                minecraft.displayHeight).getScaleFactor();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(getX() * scale,
                 minecraft.displayHeight - (getY() + getHeight()) * scale,

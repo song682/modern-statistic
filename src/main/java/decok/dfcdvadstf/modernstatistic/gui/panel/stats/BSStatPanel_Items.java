@@ -217,8 +217,11 @@ public class BSStatPanel_Items extends BSStatPanel {
                 return true;
             }
             if (button == 1 && ModernStatistic.config.enableWikiLinks) {
-                // Right-click: show popup overlay
-                ItemPopupOverlay popup = new ItemPopupOverlay(entry, mouseX, mouseY, screen);
+                // Right-click: show popup overlay (PANELED mode keeps the
+                // "View on Wiki" action)
+                // 右键：显示弹出菜单（PANELED 模式保留“查看 Wiki”操作）
+                ItemPopupOverlay popup = new ItemPopupOverlay(entry, mouseX, mouseY,
+                        screen.width, screen.height, screen, true);
                 OverlayManager.INSTANCE.register(popup);
                 return true;
             }

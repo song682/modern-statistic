@@ -20,3 +20,23 @@ modernstatistic.about.source_code=源代码
 # 弹出菜单
 betterstats.gui.view_on_wiki=查看 Wiki
 betterstats.gui.pin_to_hud=固定到 HUD
+betterstats.gui.unpin_from_hud=从 HUD 取消固定
+
+# HUD 统计命令（/hudstats）
+hudstats.usage=/hudstats <add|remove|list|clear|toggle> [statId]
+hudstats.add.usage=/hudstats add <statId>
+hudstats.added=已将 %s 固定到 HUD。
+hudstats.invalid_stat=未知统计：%s
+hudstats.removed=已将 %s 从 HUD 移除。
+hudstats.cleared=已清空全部 HUD 统计。
+hudstats.list.header=已固定到 HUD 的统计：
+hudstats.list.empty=还没有统计固定到 HUD。
+hudstats.toggle.on=HUD 叠加层已启用。
+hudstats.toggle.off=HUD 叠加层已禁用。
+hudstats.hud_hidden=HUD 隐藏时无法修改统计。请先使用 /hudstats toggle 显示 HUD。
+
+# HUD 统计标签模板（参数：数量, 物品名）
+hudstats.stat.mineBlock=挖掘了 %s 个%s
+hudstats.stat.craftItem=合成了 %s 个%s
+hudstats.stat.useItem=使用了 %s 次%s
+hudstats.stat.breakItem=损坏了 %s 个%s

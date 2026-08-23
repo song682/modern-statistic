@@ -4,10 +4,14 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import decok.dfcdvadstf.catframe.ui.components.tab.TabRegistry;
+import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
+import decok.dfcdvadstf.modernstatistic.command.CommandHudStats;
 import decok.dfcdvadstf.modernstatistic.config.ModernStatisticConfig;
+import decok.dfcdvadstf.modernstatistic.gui.overlay.StatsHudOverlay;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,10 +40,21 @@ public class ModernStatistic {
 
         // Register event handler for item pickup and drop tracking
         MinecraftForge.EVENT_BUS.register(new ItemStatsTracker());
+
+        // Register the HUD statistics overlay singleton — CatFrame's
+        // ClientOverlayHandler renders HUD-context overlays automatically.
+        // 注册 HUD 统计叠加层单例——CatFrame 的 ClientOverlayHandler 会自动渲染 HUD 上下文 Overlay。
+        OverlayManager.INSTANCE.register(StatsHudOverlay.INSTANCE);
+        logger.info("Registered HUD stats overlay");
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         logger.info("Initializing ModernStatistic Mod");
+
+        // Register the client-side command for managing the pinned stats HUD
+        // 注册管理固定统计 HUD 的客户端命令
+        ClientCommandHandler.instance.registerCommand(new CommandHudStats());
+        logger.info("Registered /hudstats command");
     }
 }

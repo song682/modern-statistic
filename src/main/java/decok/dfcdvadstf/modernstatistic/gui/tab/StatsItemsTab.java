@@ -5,7 +5,9 @@ import decok.dfcdvadstf.catframe.ui.components.ContainerObjectSelectionList;
 import decok.dfcdvadstf.catframe.ui.components.events.GuiEventListener;
 import decok.dfcdvadstf.catframe.ui.components.tab.AbstractScreenTab;
 import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
+import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.modernstatistic.gui.list.ModernSelectionList;
+import decok.dfcdvadstf.modernstatistic.gui.overlay.ItemPopupOverlay;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -69,13 +71,32 @@ public class StatsItemsTab extends AbstractScreenTab {
 
     private MergedSelectionList list;
 
+    /** Host screen dimensions for popup clamping / 宿主界面尺寸（弹窗钳制用） */
+    private int screenWidth;
+    private int screenHeight;
+
     public StatsItemsTab() {
         super(106, "stat.itemsButton");
     }
 
+    /**
+     * Initialise the tab with the host screen: keeps the screen size for the
+     * item right-click popup overlay ({@link ItemPopupOverlay}) edge clamping.
+     * The popup only offers pin/unpin in TABBED mode — the "View on Wiki"
+     * action is PANELED-mode-only, so no {@code WikiLinkHandler} is needed
+     * here.
+     * <p>
+     * 用宿主界面初始化标签页：保存界面尺寸用于物品右键弹出菜单
+     * （{@link ItemPopupOverlay}）的边缘钳制。TABBED 模式的弹窗只提供
+     * 固定/取消固定——“查看 Wiki”操作仅属 PANELED 模式，因此这里不需要
+     * {@code WikiLinkHandler}。
+     * </p>
+     */
     public void initGui(int width, int height, List<GuiButton> buttonList,
             StatFileWriter writer) {
         this.statFileWriter = writer;
+        this.screenWidth = width;
+        this.screenHeight = height;
         this.list = new MergedSelectionList(width, height);
         setVisible(false);
     }
@@ -337,6 +358,24 @@ public class StatsItemsTab extends AbstractScreenTab {
                     mc.getSoundHandler().playSound(
                             PositionedSoundRecord.func_147674_a(
                                     new ResourceLocation("gui.button.press"), 1.0F));
+                    return;
+                }
+            }
+
+            // Right-click on a data row → item popup overlay, mirroring the
+            // PANELED mode's BSStatPanel_Items.ItemStatWidget.onMouseClicked.
+            // TABBED mode only offers pin/unpin (no wiki handler, no wiki
+            // action) — that feature belongs to the PANELED screen.
+            // 右键点击数据行 → 物品右键弹出菜单，与 PANELED 模式的
+            // BSStatPanel_Items.ItemStatWidget.onMouseClicked 对应。
+            // TABBED 模式只提供固定/取消固定（无 wiki handler、无 wiki 操作）——
+            // 该功能属于 PANELED 界面。
+            if (mouseButton == 1 && isMouseOver(mouseX, mouseY)) {
+                BaseEntry hovered = getEntryAtPosition(mouseX, mouseY);
+                if (hovered instanceof MergedEntry) {
+                    ItemPopupOverlay popup = new ItemPopupOverlay(hovered, mouseX,
+                            mouseY, screenWidth, screenHeight, null, false);
+                    OverlayManager.INSTANCE.register(popup);
                     return;
                 }
             }

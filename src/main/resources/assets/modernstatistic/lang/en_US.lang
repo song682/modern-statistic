@@ -20,3 +20,23 @@ modernstatistic.about.source_code=Source Code
 # Popup overlay
 betterstats.gui.view_on_wiki=View on Wiki
 betterstats.gui.pin_to_hud=Pin to HUD
+betterstats.gui.unpin_from_hud=Unpin from HUD
+
+# HUD stats command (/hudstats)
+hudstats.usage=/hudstats <add|remove|list|clear|toggle> [statId]
+hudstats.add.usage=/hudstats add <statId>
+hudstats.added=Added %s to HUD.
+hudstats.invalid_stat=Unknown stat: %s
+hudstats.removed=Removed %s from HUD.
+hudstats.cleared=All HUD stats cleared.
+hudstats.list.header=Pinned HUD stats:
+hudstats.list.empty=No stats pinned to HUD.
+hudstats.toggle.on=HUD overlay enabled.
+hudstats.toggle.off=HUD overlay disabled.
+hudstats.hud_hidden=Cannot modify HUD stats while HUD is hidden. Use /hudstats toggle first.
+
+# HUD stat label templates (args: value, item name)
+hudstats.stat.mineBlock=Mined %s %s
+hudstats.stat.craftItem=Crafted %s %s
+hudstats.stat.useItem=Used %s %s
+hudstats.stat.breakItem=Broke %s %s

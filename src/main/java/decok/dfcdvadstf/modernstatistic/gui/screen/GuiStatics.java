@@ -19,7 +19,6 @@ import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.stats.StatFileWriter;
@@ -672,18 +671,6 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     }
 
     // ==================== Wiki link confirmation ====================
-
-    /**
-     * Show the "Are you sure you want to open this link?" confirmation dialog
-     * before opening a Wiki URL in the browser (BSS pattern).
-     * <p>
-     * 在浏览器中打开 Wiki 链接前显示"确定要打开此链接吗？"确认对话框（BSS 模式）。
-     * </p>
-     */
-    public void showWikiConfirm(String url) {
-        this.pendingWikiUrl = url;
-        this.mc.displayGuiScreen(new GuiConfirmOpenLink(this, url, 0, false));
-    }
 
     @Override
     public void confirmClicked(boolean confirmed, int id) {

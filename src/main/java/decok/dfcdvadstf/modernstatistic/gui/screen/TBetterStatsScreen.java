@@ -1,7 +1,10 @@
 package decok.dfcdvadstf.modernstatistic.gui.screen;
 
+import decok.dfcdvadstf.catframe.ui.Text;
+import decok.dfcdvadstf.catframe.ui.screens.Screen;
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
 import decok.dfcdvadstf.modernstatistic.gui.TElement;
+import decok.dfcdvadstf.modernstatistic.gui.WikiLinkHandler;
 import decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Downloading;
 import decok.dfcdvadstf.modernstatistic.gui.panel.BSPanel_Statistics;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
@@ -15,7 +18,7 @@ import net.minecraft.stats.StatFileWriter;
  * The main BetterStats-style statistics screen (Paneled mode).
  * <p>Hosts a root {@link TElement} tree that dispatches rendering and input.</p>
  */
-public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
+public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, WikiLinkHandler {
 
     // ==================== Tabs ====================
 
@@ -54,6 +57,7 @@ public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
     // ==================== Constructors ====================
 
     public TBetterStatsScreen(GuiScreen parent, StatFileWriter statFileWriter) {
+        super(Text.translatable("stats.title"));
         this.parent = parent;
         this.statFileWriter = statFileWriter;
         // Apply default tab from config
@@ -89,8 +93,17 @@ public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
 
     // ==================== Lifecycle ====================
 
+    /**
+     * Build the UI: the root {@link TElement} fills the screen and hosts the
+     * downloading/stats panels. CatFrame's {@code Screen} calls this from
+     * {@code initGui()} on first show and every resize.
+     * <p>
+     * 构建界面：根 {@link TElement} 填满屏幕并承载下载/统计面板。CatFrame 的
+     * {@code Screen} 在首次显示与每次缩放时经 {@code initGui()} 调用本方法。
+     * </p>
+     */
     @Override
-    public void initGui() {
+    protected void init() {
         // Root element fills the screen
         rootElement = new TElement(0, 0, width, height);
 
@@ -136,9 +149,24 @@ public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
 
     // ==================== Rendering ====================
 
+    /**
+     * Render pipeline: CatFrame base draws background + renderables + vanilla
+     * buttons, then the root {@link TElement} tree draws the panels (item
+     * icons included). Overlays (right-click popup) render last — both here
+     * and via {@code ClientOverlayHandler} on {@code DrawScreenEvent.Post} —
+     * so the popup always lands on top of the item icon and the display
+     * elements underneath it.
+     * <p>
+     * 渲染管线：CatFrame 基类绘制背景 + 可渲染组件 + 原版按钮，随后根
+     * {@link TElement} 树绘制面板（含物品图标）。Overlay（右键弹出菜单）
+     * 最后渲染——此处与 {@code ClientOverlayHandler} 的
+     * {@code DrawScreenEvent.Post} 都会渲染——保证弹窗始终位于物品图标
+     * 及其下所有 display element 之上。
+     * </p>
+     */
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
 
         if (rootElement != null) {
             rootElement.render(mouseX, mouseY, partialTicks);
@@ -146,21 +174,14 @@ public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
         }
 
         // Render all registered overlays (e.g. right-click popup menu)
+        // 渲染所有已注册的 Overlay（如右键弹出菜单）——保持在最上层
         decok.dfcdvadstf.catframe.ui.overlay.OverlayManager.INSTANCE.renderAll(mouseX, mouseY, partialTicks);
-
-        // Draw hover tooltip (simple version)
-        drawTooltip(mouseX, mouseY);
-    }
-
-    private void drawTooltip(int mouseX, int mouseY) {
-        // Simple tooltip: draw item/stat name under cursor
-        // (Extended tooltip handled by individual stat widgets)
     }
 
     // ==================== Input ====================
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int button) {
+    public void mouseClicked(int mouseX, int mouseY, int button) {
         // Blocking overlays get first crack at mouse input
         if (decok.dfcdvadstf.catframe.ui.overlay.OverlayManager.INSTANCE.handleMouseClick(mouseX, mouseY, button)) {
             return;
@@ -192,8 +213,22 @@ public class TBetterStatsScreen extends GuiScreen implements GuiYesNoCallback {
         }
     }
 
+    /**
+     * Vanilla {@code keyTyped} — re-implemented here as {@code public} to satisfy
+     * the CatFrame {@code Component} contract at compile time: the released
+     * CatFrame jar reobfs this method to {@code func_73869_a}, so javac (MCP
+     * names) cannot see the base-class override. The root {@link TElement} tree
+     * is not part of CatFrame's component tree, so its keyboard dispatch is
+     * forwarded explicitly; Esc returns to the parent screen.
+     * <p>
+     * 原版 {@code keyTyped}——在此以 public 重新实现，以满足 CatFrame
+     * {@code Component} 接口的编译期契约：发布的 CatFrame jar 将该方法 reobf 为
+     * {@code func_73869_a}，javac（MCP 名）无法看到基类覆盖。根 {@link TElement}
+     * 树不属于 CatFrame 组件树，因此其键盘派发在此显式转发；Esc 返回父界面。
+     * </p>
+     */
     @Override
-    protected void keyTyped(char typedChar, int keyCode) {
+    public void keyTyped(char typedChar, int keyCode) {
         if (rootElement != null && rootElement.keyTyped(typedChar, keyCode)) {
             return;
         }

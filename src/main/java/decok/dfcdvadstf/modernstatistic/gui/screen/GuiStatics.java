@@ -20,7 +20,6 @@ import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
 import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.stats.StatFileWriter;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -65,7 +64,7 @@ import java.util.List;
  * Done 按钮为 footer 区域，标签页内容填充内容区（经 {@link TabManager#setTabArea} 设置）。
  * </p>
  */
-public class GuiStatics extends Screen implements GuiYesNoCallback {
+public class GuiStatics extends Screen {
 
     // ==================== Constants ====================
 
@@ -137,12 +136,6 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     private GuiEventListener tabListGeneral;
     private GuiEventListener tabListItems;
     private GuiEventListener tabListMobs;
-
-    /**
-     * Pending Wiki URL for the GuiConfirmOpenLink confirmation flow (BSS pattern) /
-     * 待确认的 Wiki 链接（BSS 模式）
-     */
-    protected String pendingWikiUrl = null;
 
     // ==================== Constructors ====================
 
@@ -668,19 +661,5 @@ public class GuiStatics extends Screen implements GuiYesNoCallback {
     @Override
     public boolean doesGuiPauseGame() {
         return false;
-    }
-
-    // ==================== Wiki link confirmation ====================
-
-    @Override
-    public void confirmClicked(boolean confirmed, int id) {
-        if (confirmed && pendingWikiUrl != null) {
-            try {
-                java.awt.Desktop.getDesktop().browse(java.net.URI.create(pendingWikiUrl));
-            } catch (Exception ignored) {
-            }
-        }
-        pendingWikiUrl = null;
-        this.mc.displayGuiScreen(this);
     }
 }

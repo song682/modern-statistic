@@ -22,6 +22,7 @@ public class ModernStatisticConfig {
 
     // === Display Options ===
     public boolean showEmptyStats;
+    public boolean tabbedLayoutClear;
     public String defaultTab;
     public boolean enableBalancedDietTab;
     public boolean enableMonsterHunterTab;
@@ -78,6 +79,9 @@ public class ModernStatisticConfig {
         mobWikiBaseUrl = configFile.getString("mobWikiBaseUrl", "wiki",
                 "https://minecraft.fandom.com/wiki/",
                 "Base URL for mob wiki lookups. The mob name is appended to this URL.");
+
+        tabbedLayoutClear = configFile.getBoolean("tabbedLayoutClear", "ui",
+                false, "Enable this to have the cleared tab and background.");
     }
 
     public void save() {

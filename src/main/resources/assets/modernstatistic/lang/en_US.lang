@@ -9,6 +9,7 @@ betterstats.gui.menu_bar.view=View
 betterstats.gui.menu_bar.view.vanilla_stats=Show vanilla stats
 betterstats.gui.menu_bar.about=About
 betterstats.gui.menu_bar.about.source=Source Code
+betterstats.gui.menu_bar.about.credits=Credits
 betterstats.tab.balanced_diet=Balanced Diet
 betterstats.tab.monster_hunter=Monster Hunter
 

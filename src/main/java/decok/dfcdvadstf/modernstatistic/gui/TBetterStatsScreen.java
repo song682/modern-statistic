@@ -142,11 +142,6 @@ public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, Wiki
         mc.displayGuiScreen(new GuiStats(parent, statFileWriter));
     }
 
-    /** Open the About screen showing credit and source code links. */
-    public void showAboutScreen() {
-        mc.displayGuiScreen(new GuiAboutModernStatistic(this));
-    }
-
     // ==================== Rendering ====================
 
     /**

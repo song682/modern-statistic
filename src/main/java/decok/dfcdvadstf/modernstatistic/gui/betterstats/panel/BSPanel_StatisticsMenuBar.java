@@ -5,6 +5,7 @@ import decok.dfcdvadstf.modernstatistic.gui.TBetterStatsScreen;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.overlay.DropDownPanel;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.widget.TButtonWidget;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.ResourceLocation;
 
 /**
  * Simplified top menu bar for the BetterStats screen.
@@ -19,6 +20,9 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
     private static final String SOURCE_URL = "https://github.com/song682/modern-statistic";
     /** Original BetterStats repository (credits) / 原版 BetterStats 仓库（致谢） */
     private static final String CREDIT_URL = "https://github.com/TheCSDev/mc-better-stats";
+    /** Icon of the source-code menu item / 源代码菜单项图标 */
+    private static final ResourceLocation SOURCE_ICON =
+            new ResourceLocation("modernstatistic", "textures/gui/statsicon/code.png");
 
     private static final int BTN_HEIGHT = 14;
     private static final int BTN_SPACING = 4;
@@ -50,12 +54,16 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
         TButtonWidget btnAbout = new TButtonWidget(btnX, btnY, 80, BTN_HEIGHT,
                 I18n.format("betterstats.gui.menu_bar.about"),
                 btn -> {
-                    new DropDownPanel(btn)
-                            .addItem(Text.translatable("betterstats.gui.menu_bar.about.source"),
-                                    () -> screen.showWikiConfirm(SOURCE_URL))
-                            .addItem(Text.translatable("betterstats.gui.menu_bar.about.credits"),
-                                    () -> screen.showWikiConfirm(CREDIT_URL))
-                            .show();
+                    DropDownPanel menu = new DropDownPanel(btn);
+                    // Source Code item with its icon / 源代码项带图标
+                    DropDownPanel.MenuItem sourceItem = DropDownPanel.item(
+                            Text.translatable("betterstats.gui.menu_bar.about.source"),
+                            () -> screen.showWikiConfirm(SOURCE_URL));
+                    sourceItem.icon(SOURCE_ICON);
+                    menu.addItem(sourceItem);
+                    menu.addItem(Text.translatable("betterstats.gui.menu_bar.about.credits"),
+                            () -> screen.showWikiConfirm(CREDIT_URL));
+                    menu.show();
                 });
         addChild(btnAbout, false);
     }

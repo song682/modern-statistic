@@ -6,9 +6,11 @@ import decok.dfcdvadstf.modernstatistic.ModernStatistic;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.TElement;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.panel.BSPanel;
 import decok.dfcdvadstf.modernstatistic.gui.TBetterStatsScreen;
+import decok.dfcdvadstf.modernstatistic.render.EntityModelRenderer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.EntityList;
+import net.minecraft.entity.EntityLivingBase;
 
 /**
  * Mob/entity statistics panel — grid layout grouped by mod.
@@ -113,6 +115,19 @@ public class BSStatPanel_Mobs extends BSStatPanel {
         protected void renderSelf(int mouseX, int mouseY, float partialTicks) {
             // Cell background
             fill(x, y, getEndX(), getEndY(), 0x80000000);
+
+            // Entity model preview rendered in the cell center
+            // 在格子中央渲染实体模型预览
+            EntityLivingBase entity = EntityModelRenderer.getEntity(entry.eggInfo.spawnedID);
+            if (entity != null) {
+                // Scale the model so its height fills the middle band of the cell
+                // (between the name at the top and the kills line at the bottom)
+                // 按实体身高缩放模型，使其填满格子中部区域（顶部名字与底部统计之间）
+                int modelScale = Math.max(8, Math.min(30,
+                        (int) (24.0F / Math.max(0.1F, entity.height))));
+                EntityModelRenderer.renderEntity(entity, x + width / 2, y + height - 14,
+                        modelScale, 0, 0);
+            }
 
             // Entity name
             String name = entry.name;

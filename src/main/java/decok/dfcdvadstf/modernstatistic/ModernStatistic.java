@@ -7,10 +7,10 @@ import decok.dfcdvadstf.catframe.ui.components.tab.TabRegistry;
 import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.modernstatistic.command.CommandHudStats;
 import decok.dfcdvadstf.modernstatistic.config.ModernStatisticConfig;
-import decok.dfcdvadstf.modernstatistic.gui.overlay.StatsHudOverlay;
-import decok.dfcdvadstf.modernstatistic.gui.tab.StatsGeneralTab;
-import decok.dfcdvadstf.modernstatistic.gui.tab.StatsItemsTab;
-import decok.dfcdvadstf.modernstatistic.gui.tab.StatsMobsTab;
+import decok.dfcdvadstf.modernstatistic.gui.betterstats.overlay.StatsHudOverlay;
+import decok.dfcdvadstf.modernstatistic.gui.tabbed.tab.StatsGeneralTab;
+import decok.dfcdvadstf.modernstatistic.gui.tabbed.tab.StatsItemsTab;
+import decok.dfcdvadstf.modernstatistic.gui.tabbed.tab.StatsMobsTab;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 

@@ -1,7 +1,7 @@
 package decok.dfcdvadstf.modernstatistic.command;
 
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
-import decok.dfcdvadstf.modernstatistic.gui.overlay.StatsHudOverlay;
+import decok.dfcdvadstf.modernstatistic.gui.betterstats.overlay.StatsHudOverlay;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.stats.StatBase;

@@ -1,8 +1,8 @@
 package decok.dfcdvadstf.modernstatistic.mixin;
 
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
-import decok.dfcdvadstf.modernstatistic.gui.screen.GuiStatics;
-import decok.dfcdvadstf.modernstatistic.gui.screen.TBetterStatsScreen;
+import decok.dfcdvadstf.modernstatistic.gui.GuiStatics;
+import decok.dfcdvadstf.modernstatistic.gui.TBetterStatsScreen;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.achievement.GuiStats;
 import net.minecraft.stats.StatFileWriter;

@@ -15,15 +15,8 @@ public class ModernStatisticConfig {
 
     public final Configuration configFile;
 
-    // === UI Layout Mode ===
-    /** "TABBED" = top-positioned tabs (default), "PANELED" = BetterStats-style left sidebar, "VANILLA" = original vanilla screen */
     public String uiLayoutMode;
-
-    // === Default UI Layout (for other mods) ===
-    /** Default UI layout mode for other mods that depend on ModernStatistic. One of: TABBED, PANELED, VANILLA */
     public String defaultUILayout;
-
-    // === Display Options ===
     public boolean showEmptyStats;
     public boolean tabbedLayoutClear;
     public String defaultTab;
@@ -33,19 +26,14 @@ public class ModernStatisticConfig {
     public String itemWikiBaseUrl;
     public String mobWikiBaseUrl;
     public boolean inputFocusHighlight;
-
-    // === HUD Overlay ===
-    /** Whether the statistics HUD overlay is enabled / 是否启用 HUD 统计叠加层 */
     public boolean enableHudOverlay;
-    /** Comma-separated list of stat IDs pinned to the HUD overlay / 逗号分隔的固定到 HUD 的统计 ID 列表 */
     public String pinnedStats;
 
     public ModernStatisticConfig(File file) {
         configFile = new Configuration(file);
 
-        configFile.addCustomCategoryComment("ui", "UI layout and display options for the statistics screen.");
-        configFile.addCustomCategoryComment("wiki", "Wiki integration options.");
-        configFile.addCustomCategoryComment("hud", "HUD overlay configuration.");
+        configFile.addCustomCategoryComment("tab", "UI layout and display options for the statistics screen.");
+        configFile.addCustomCategoryComment("betterstats", "Wiki integration options.");
 
         configFile.load();
         loadOptions();
@@ -53,50 +41,48 @@ public class ModernStatisticConfig {
     }
 
     private void loadOptions() {
-        // --- UI category ---
-        uiLayoutMode = configFile.getString("uiLayoutMode", "ui", "TABBED",
+        uiLayoutMode = configFile.getString("uiLayoutMode", Configuration.CATEGORY_GENERAL, "TABBED",
                 "UI layout mode: TABBED (top-positioned tabs), PANELED (BetterStats-style left sidebar panel), or VANILLA (original vanilla screen).",
                 new String[]{"TABBED", "PANELED", "VANILLA"});
 
-        defaultUILayout = configFile.getString("defaultUILayout", "ui", "TABBED",
-                "Default UI layout mode for other mods that depend on ModernStatistic. One of: TABBED, PANELED, VANILLA.",
+        defaultUILayout = configFile.getString("defaultUILayout", "betterstats", "TABBED",
+                "Default UI layout mode for BetterStats that depend on ModernStatistic. One of: TABBED, PANELED, VANILLA.",
                 new String[]{"TABBED", "PANELED", "VANILLA"});
 
-        showEmptyStats = configFile.getBoolean("showEmptyStats", "ui", false,
+        showEmptyStats = configFile.getBoolean("showEmptyStats", "betterstats", false,
                 "If true, statistics with a value of zero will still be shown.");
 
-        defaultTab = configFile.getString("defaultTab", "ui", "General",
+        defaultTab = configFile.getString("defaultTab", "betterstats", "General",
                 "The tab shown by default when opening the stats screen. One of: General, Items, Mobs, BalancedDiet, MonsterHunter.",
                 new String[]{"General", "Items", "Mobs", "BalancedDiet", "MonsterHunter"});
 
-        enableBalancedDietTab = configFile.getBoolean("enableBalancedDietTab", "ui", true,
+        enableBalancedDietTab = configFile.getBoolean("enableBalancedDietTab", "betterstats", true,
                 "If true, the Balanced Diet tab (food items only) is available.");
 
-        enableMonsterHunterTab = configFile.getBoolean("enableMonsterHunterTab", "ui", true,
+        enableMonsterHunterTab = configFile.getBoolean("enableMonsterHunterTab", "betterstats", true,
                 "If true, the Monster Hunter tab (monster kills only) is available.");
 
-        inputFocusHighlight = configFile.getBoolean("inputFocusHighlight", "ui", true,
+        inputFocusHighlight = configFile.getBoolean("inputFocusHighlight", "betterstats", true,
                 "If true, the search text field shows a bright border when focused.");
 
-        // --- Wiki category ---
-        enableWikiLinks = configFile.getBoolean("enableWikiLinks", "wiki", true,
+        enableWikiLinks = configFile.getBoolean("enableWikiLinks", "betterstats", true,
                 "If true, middle-clicking an item or mob opens its wiki page in the browser.");
 
-        itemWikiBaseUrl = configFile.getString("itemWikiBaseUrl", "wiki",
+        itemWikiBaseUrl = configFile.getString("itemWikiBaseUrl", "betterstats",
                 "https://minecraft.fandom.com/wiki/",
                 "Base URL for item wiki lookups. The item name is appended to this URL.");
 
-        mobWikiBaseUrl = configFile.getString("mobWikiBaseUrl", "wiki",
+        mobWikiBaseUrl = configFile.getString("mobWikiBaseUrl", "betterstats",
                 "https://minecraft.fandom.com/wiki/",
                 "Base URL for mob wiki lookups. The mob name is appended to this URL.");
 
-        tabbedLayoutClear = configFile.getBoolean("tabbedLayoutClear", "ui",
+        tabbedLayoutClear = configFile.getBoolean("tabbedLayoutClear", "tab",
                 false, "Enable this to have the cleared tab and background.");
 
-        // --- HUD category ---
-        enableHudOverlay = configFile.getBoolean("enableHudOverlay", "hud", true,
+        enableHudOverlay = configFile.getBoolean("enableHudOverlay", "betterstats", true,
                 "If true, the statistics HUD overlay is shown on the game screen when stats are pinned.");
-        pinnedStats = configFile.getString("pinnedStats", "hud", "",
+
+        pinnedStats = configFile.getString("pinnedStats", "betterstats", "",
                 "Comma-separated list of stat IDs pinned to the HUD overlay. "
                         + "Example: stat.jump,stat.mineBlock.1. Managed via the /hudstats command or the right-click menu.");
     }
@@ -118,6 +104,16 @@ public class ModernStatisticConfig {
     public boolean isVanillaMode() {
         return "VANILLA".equalsIgnoreCase(uiLayoutMode);
     }
+
+    // === Default UI Layout Mode for BetterStats ===
+    public boolean isBackToVanillaMode() {
+        return "VANILLA".equalsIgnoreCase(defaultUILayout);
+    }
+    
+    public boolean isBackToTabbedMode() {
+        return "TABBED".equalsIgnoreCase(defaultUILayout);
+    }
+
 
     // === HUD convenience methods ===
 

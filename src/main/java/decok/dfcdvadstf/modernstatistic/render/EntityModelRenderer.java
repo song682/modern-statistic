@@ -88,7 +88,8 @@ public final class EntityModelRenderer {
      *                  to its own right when the cursor moves left); 0 for a fixed
      *                  front-facing pose
      * @param pitchOffset mouse offset Y from the model center, e.g. {@code mouseY - y};
-     *                    0 for a fixed front-facing pose
+     *                    negated internally so the model looks down when the cursor
+     *                    moves down; 0 for a fixed front-facing pose
      */
     public static void renderEntity(EntityLivingBase entity, int x, int y, int scale,
             float yawOffset, float pitchOffset) {
@@ -135,7 +136,7 @@ public final class EntityModelRenderer {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
         GL11.glRotatef(-135.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-((float) Math.atan(pitchOffset / 40.0F)) * 20.0F, 1.0F, 0.0F, 0.0F);
+        GL11.glRotatef(((float) Math.atan(pitchOffset / 40.0F)) * 20.0F, 1.0F, 0.0F, 0.0F);
         // Negate the yaw offset: the GUI pipeline renders through an X mirror
         // (glScalef(-scale, ...)), so screen left is the model's own right.
         // The model must turn toward its own right when the cursor moves left,
@@ -144,7 +145,10 @@ public final class EntityModelRenderer {
         // 即模型自身右侧；因此光标左移时模型应转向自身右侧（如同面向玩家），而不是镜像光标。
         entity.renderYawOffset = -(float) Math.atan(yawOffset / 40.0F) * 20.0F;
         entity.rotationYaw = -(float) Math.atan(yawOffset / 40.0F) * 40.0F;
-        entity.rotationPitch = -((float) Math.atan(pitchOffset / 40.0F)) * 20.0F;
+        // Invert the pitch as well: with the model facing the player, moving the
+        // cursor down must tilt the model down toward the cursor, not up.
+        // pitch 同样取反：模型面朝玩家时，光标下移应使模型向下倾斜朝向光标，而非上仰。
+        entity.rotationPitch = ((float) Math.atan(pitchOffset / 40.0F)) * 20.0F;
         entity.rotationYawHead = entity.rotationYaw;
         entity.prevRotationYawHead = entity.rotationYaw;
         GL11.glTranslatef(0.0F, entity.yOffset, 0.0F);

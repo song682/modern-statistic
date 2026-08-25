@@ -125,8 +125,15 @@ public class BSStatPanel_Mobs extends BSStatPanel {
                 // 按实体身高缩放模型，使其填满格子中部区域（顶部名字与底部统计之间）
                 int modelScale = Math.max(8, Math.min(30,
                         (int) (24.0F / Math.max(0.1F, entity.height))));
-                EntityModelRenderer.renderEntity(entity, x + width / 2, y + height - 14,
-                        modelScale, 0, 0);
+                // Pass mouse offsets relative to cell center so the model turns
+                // to follow the cursor, mirroring the vanilla inventory player preview
+                // 传入鼠标相对格子中心的偏移，使模型随光标转动（与原版背包玩家预览一致）
+                int cellCenterX = x + width / 2;
+                int cellCenterY = y + height / 2;
+                EntityModelRenderer.renderEntity(entity, cellCenterX, y + height - 14,
+                        modelScale,
+                        (float) (mouseX - cellCenterX),
+                        (float) (mouseY - cellCenterY));
             }
 
             // Entity name

@@ -101,6 +101,14 @@ public final class EntityModelRenderer {
         }
 
         GL11.glEnable(GL11.GL_COLOR_MATERIAL);
+
+        // Force full-bright lightmap so the model is not darkened by world lighting at (0,0,0)
+        // 强制设置全亮 lightmap，避免模型因世界 (0,0,0) 处亮度极低而渲染偏黑
+        OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
+        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 50.0F);
         GL11.glScalef(-scale, scale, scale);
@@ -143,6 +151,9 @@ public final class EntityModelRenderer {
         GL11.glPopMatrix();
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+
+        // Restore lightmap state
+        // 还原 lightmap 状态
         OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);

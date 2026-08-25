@@ -102,13 +102,6 @@ public final class EntityModelRenderer {
 
         GL11.glEnable(GL11.GL_COLOR_MATERIAL);
 
-        // Force full-bright lightmap so the model is not darkened by world lighting at (0,0,0)
-        // 强制设置全亮 lightmap，避免模型因世界 (0,0,0) 处亮度极低而渲染偏黑
-        OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
-        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
-
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 50.0F);
         GL11.glScalef(-scale, scale, scale);
@@ -124,6 +117,21 @@ public final class EntityModelRenderer {
 
         GL11.glRotatef(135.0F, 0.0F, 1.0F, 0.0F);
         RenderHelper.enableStandardItemLighting();
+        // Reset the material color to white: with GL_COLOR_MATERIAL enabled a stale
+        // dark glColor (left over from GUI text) would darken the whole model.
+        // RenderBiped.doRender does exactly the same, which is why skeletons/zombies
+        // looked normal while other mobs were too dark.
+        // 将材质颜色重置为白色：GL_COLOR_MATERIAL 开启时，GUI 文字残留的暗色 glColor
+        // 会使整个模型变暗。RenderBiped.doRender 正是这样做，所以骷髅/僵尸正常而其他生物偏黑。
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        // Disable the lightmap texture unit: lightmap coordinates are only valid under
+        // the world matrix (set by renderEntityStatic); under the GUI matrix the stale
+        // coordinates are transformed into uncontrollable values that darken the model.
+        // 禁用 lightmap 纹理单元：lightmap 坐标仅在渲染世界时由 renderEntityStatic 设置，
+        // 在 GUI 矩阵下遗留坐标会被变换成不可控值，导致模型发黑。
+        OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
         GL11.glRotatef(-135.0F, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-((float) Math.atan(pitchOffset / 40.0F)) * 20.0F, 1.0F, 0.0F, 0.0F);
         entity.renderYawOffset = (float) Math.atan(yawOffset / 40.0F) * 20.0F;

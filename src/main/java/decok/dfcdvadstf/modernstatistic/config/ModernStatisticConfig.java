@@ -23,6 +23,7 @@ public class ModernStatisticConfig {
     public boolean enableBalancedDietTab;
     public boolean enableMonsterHunterTab;
     public boolean enableWikiLinks;
+    public boolean mobModelFollowCursor;
     public String itemWikiBaseUrl;
     public String mobWikiBaseUrl;
     public boolean inputFocusHighlight;
@@ -67,6 +68,9 @@ public class ModernStatisticConfig {
 
         enableWikiLinks = configFile.getBoolean("enableWikiLinks", "betterstats", true,
                 "If true, middle-clicking an item or mob opens its wiki page in the browser.");
+
+        mobModelFollowCursor = configFile.getBoolean("mobModelFollowCursor", "betterstats", true,
+                "If true, mob models in the stats grid turn to follow the cursor.");
 
         itemWikiBaseUrl = configFile.getString("itemWikiBaseUrl", "betterstats",
                 "https://minecraft.fandom.com/wiki/",

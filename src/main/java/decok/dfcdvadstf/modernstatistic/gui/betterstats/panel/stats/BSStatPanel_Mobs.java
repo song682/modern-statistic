@@ -128,12 +128,15 @@ public class BSStatPanel_Mobs extends BSStatPanel {
                 // Pass mouse offsets relative to cell center so the model turns
                 // to follow the cursor, mirroring the vanilla inventory player preview
                 // 传入鼠标相对格子中心的偏移，使模型随光标转动（与原版背包玩家预览一致）
+                // Respect the mobModelFollowCursor config option
+                // 受配置项 mobModelFollowCursor 控制
                 int cellCenterX = x + width / 2;
                 int cellCenterY = y + height / 2;
+                boolean followCursor = ModernStatistic.config.mobModelFollowCursor;
                 EntityModelRenderer.renderEntity(entity, cellCenterX, y + height - 14,
                         modelScale,
-                        (float) (mouseX - cellCenterX),
-                        (float) (mouseY - cellCenterY));
+                        followCursor ? (float) (mouseX - cellCenterX) : 0.0F,
+                        followCursor ? (float) (mouseY - cellCenterY) : 0.0F);
             }
 
             // Entity name

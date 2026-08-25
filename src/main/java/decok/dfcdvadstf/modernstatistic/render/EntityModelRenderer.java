@@ -84,7 +84,9 @@ public final class EntityModelRenderer {
      * @param y feet base Y of the model on screen
      * @param scale model scale; typical GUI values are 15–40
      * @param yawOffset mouse offset X from the model center, e.g. {@code mouseX - x};
-     *                  0 for a fixed front-facing pose
+     *                  negated internally (the screen is X-mirrored, so the model turns
+     *                  to its own right when the cursor moves left); 0 for a fixed
+     *                  front-facing pose
      * @param pitchOffset mouse offset Y from the model center, e.g. {@code mouseY - y};
      *                    0 for a fixed front-facing pose
      */
@@ -134,8 +136,14 @@ public final class EntityModelRenderer {
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
         GL11.glRotatef(-135.0F, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-((float) Math.atan(pitchOffset / 40.0F)) * 20.0F, 1.0F, 0.0F, 0.0F);
-        entity.renderYawOffset = (float) Math.atan(yawOffset / 40.0F) * 20.0F;
-        entity.rotationYaw = (float) Math.atan(yawOffset / 40.0F) * 40.0F;
+        // Negate the yaw offset: the GUI pipeline renders through an X mirror
+        // (glScalef(-scale, ...)), so screen left is the model's own right.
+        // The model must turn toward its own right when the cursor moves left,
+        // i.e. behave as if facing the player, not mirroring the cursor.
+        // 取反 yaw 偏移：GUI 渲染管线带 X 轴镜像（glScalef(-scale, ...)），屏幕左侧
+        // 即模型自身右侧；因此光标左移时模型应转向自身右侧（如同面向玩家），而不是镜像光标。
+        entity.renderYawOffset = -(float) Math.atan(yawOffset / 40.0F) * 20.0F;
+        entity.rotationYaw = -(float) Math.atan(yawOffset / 40.0F) * 40.0F;
         entity.rotationPitch = -((float) Math.atan(pitchOffset / 40.0F)) * 20.0F;
         entity.rotationYawHead = entity.rotationYaw;
         entity.prevRotationYawHead = entity.rotationYaw;

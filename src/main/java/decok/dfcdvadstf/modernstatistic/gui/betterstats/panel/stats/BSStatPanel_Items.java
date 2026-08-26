@@ -7,6 +7,7 @@ import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.modernstatistic.ItemStatsTracker;
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.TElement;
+import decok.dfcdvadstf.modernstatistic.gui.betterstats.TPanelElement;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.overlay.ItemPopupOverlay;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.panel.BSPanel;
 import decok.dfcdvadstf.modernstatistic.gui.TBetterStatsScreen;
@@ -220,12 +221,38 @@ public class BSStatPanel_Items extends BSStatPanel {
                 // Right-click: show popup overlay (PANELED mode keeps the
                 // "View on Wiki" action)
                 // 右键：显示弹出菜单（PANELED 模式保留“查看 Wiki”操作）
-                ItemPopupOverlay popup = new ItemPopupOverlay(entry, mouseX, mouseY,
+                // TPanelElement.mouseClicked hands children a content-space
+                // mouseY (screen Y + scroll offset); convert it back to screen
+                // coordinates, otherwise the popup drifts down by the scroll
+                // amount and gets clamped to the bottom edge of the screen.
+                // TPanelElement.mouseClicked 传给子元素的 mouseY 是内容坐标
+                // （屏幕 Y 叠加滚动偏移）；还原为屏幕坐标，否则弹窗会随滚动
+                // 下移并被钳制到屏幕底部。
+                ItemPopupOverlay popup = new ItemPopupOverlay(entry, mouseX, toScreenY(mouseY),
                         screen.width, screen.height, screen, true);
                 OverlayManager.INSTANCE.register(popup);
                 return true;
             }
             return false;
+        }
+
+        /**
+         * Convert a content-space mouse Y back to screen coordinates by undoing
+         * the scroll offsets that ancestor {@link TPanelElement} mouse dispatch
+         * added ({@code TPanelElement.mouseClicked} passes {@code mouseY + scrollY}
+         * to its children).
+         * <p>把内容坐标 Y 还原为屏幕坐标：撤销祖先 {@link TPanelElement} 鼠标派发时
+         * 叠加的滚动偏移（{@code TPanelElement.mouseClicked} 向子元素传递的是
+         * {@code mouseY + scrollY}）。</p>
+         */
+        private int toScreenY(int contentY) {
+            int y = contentY;
+            for (TElement p = getParent(); p != null; p = p.getParent()) {
+                if (p instanceof TPanelElement) {
+                    y -= (int) ((TPanelElement) p).getScrollY();
+                }
+            }
+            return y;
         }
 
         private int getDisplayDamage() {

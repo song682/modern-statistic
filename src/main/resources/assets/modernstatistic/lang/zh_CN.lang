@@ -1,8 +1,8 @@
 stat.pickup=拾取个数
 stat.drop=丢弃个数
 stat.blocksButton=方块
-stat.entityKills=击杀数
-stat.entityKilledBy=被击杀数
+stat.entityKills=击杀
+stat.entityKilledBy=被击杀
 
 # BetterStats 风格 Paneled 模式翻译键
 betterstats.gui.filters=过滤

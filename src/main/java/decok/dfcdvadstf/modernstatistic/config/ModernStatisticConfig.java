@@ -46,9 +46,9 @@ public class ModernStatisticConfig {
                 "UI layout mode: TABBED (top-positioned tabs), PANELED (BetterStats-style left sidebar panel), or VANILLA (original vanilla screen).",
                 new String[]{"TABBED", "PANELED", "VANILLA"});
 
-        defaultUILayout = configFile.getString("defaultUILayout", "betterstats", "TABBED",
-                "Default UI layout mode for BetterStats that depend on ModernStatistic. One of: TABBED, PANELED, VANILLA.",
-                new String[]{"TABBED", "PANELED", "VANILLA"});
+        defaultUILayout = configFile.getString("defaultUILayout", "betterstats", "VANILLA",
+                "Default UI layout mode for BetterStats that depend on ModernStatistic. One of: TABBED and VANILLA.",
+                new String[]{"TABBED", "VANILLA"});
 
         showEmptyStats = configFile.getBoolean("showEmptyStats", "betterstats", false,
                 "If true, statistics with a value of zero will still be shown.");

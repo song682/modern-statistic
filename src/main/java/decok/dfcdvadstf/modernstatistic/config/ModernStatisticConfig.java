@@ -54,8 +54,8 @@ public class ModernStatisticConfig {
                 "If true, statistics with a value of zero will still be shown.");
 
         defaultTab = configFile.getString("defaultTab", "betterstats", "General",
-                "The tab shown by default when opening the stats screen. One of: General, Items, Mobs, BalancedDiet, MonsterHunter.",
-                new String[]{"General", "Items", "Mobs", "BalancedDiet", "MonsterHunter"});
+                "The tab shown by default when opening the stats screen. One of: General, Blocks, Items, Mobs, BalancedDiet, MonsterHunter.",
+                new String[]{"General", "Blocks", "Items", "Mobs", "BalancedDiet", "MonsterHunter"});
 
         enableBalancedDietTab = configFile.getBoolean("enableBalancedDietTab", "betterstats", true,
                 "If true, the Balanced Diet tab (food items only) is available.");

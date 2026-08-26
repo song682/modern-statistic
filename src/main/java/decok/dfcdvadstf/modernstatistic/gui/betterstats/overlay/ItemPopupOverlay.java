@@ -15,6 +15,8 @@ import net.minecraft.item.Item;
 import net.minecraft.stats.StatBase;
 import net.minecraft.stats.StatList;
 
+import org.lwjgl.opengl.GL11;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -146,6 +148,21 @@ public class ItemPopupOverlay extends AbstractComponent implements Overlay {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
         if (!visible) return;
+
+        // The item icon pass (RenderItem.renderItemIntoGUI / renderItemOverlayIntoGUI)
+        // leaves GL_DEPTH_TEST and GL_CULL_FACE enabled, and depth values from the 3D
+        // block models in the depth buffer. This 2D popup is drawn at z=0, so with the
+        // depth test still active its pixels get occluded and the popup appears to
+        // render BELOW the item icons. Reset the GL state so the popup always draws on top.
+        // 物品图标的渲染（RenderItem.renderItemIntoGUI / renderItemOverlayIntoGUI）结束后
+        // 会残留 GL_DEPTH_TEST / GL_CULL_FACE 开启，且深度缓冲中留有 3D 方块模型的深度值。
+        // 本弹窗以 z=0 绘制，深度测试开启时其像素会被剔除，看起来就像渲染在物品之下。
+        // 这里重置 GL 状态，保证弹窗始终绘制在物品图标之上。
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
         // Background
         TElement.fill(originX, originY, originX + width, originY + height, 0xE0000000);

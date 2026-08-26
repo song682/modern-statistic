@@ -1,5 +1,6 @@
 stat.pickup=Picked Up
 stat.drop=Dropped
+stat.blocksButton=Blocks
 
 # BetterStats-style Paneled mode keys
 betterstats.gui.filters=Filters

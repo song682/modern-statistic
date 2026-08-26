@@ -23,11 +23,12 @@ public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, Wiki
     // ==================== Tabs ====================
 
     public enum CurrentTab {
-        General, Items, Entities, FoodStuffs, MonstersHunted;
+        General, Blocks, Items, Entities, FoodStuffs, MonstersHunted;
 
         public String getLocalizedName() {
             switch (this) {
                 case General: return I18n.format("stat.generalButton");
+                case Blocks: return I18n.format("stat.blocksButton");
                 case Items: return I18n.format("stat.itemsButton");
                 case Entities: return I18n.format("stat.mobsButton");
                 case FoodStuffs: return I18n.format("betterstats.tab.balanced_diet");

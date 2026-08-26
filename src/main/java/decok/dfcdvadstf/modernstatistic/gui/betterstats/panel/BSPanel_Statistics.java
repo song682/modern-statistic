@@ -85,6 +85,9 @@ public class BSPanel_Statistics extends BSPanel {
             case General:
                 statPanel = new BSStatPanel_General(panelRightMenu, screen);
                 break;
+            case Blocks:
+                statPanel = new BSStatPanel_Blocks(panelRightMenu, screen);
+                break;
             case Items:
                 statPanel = new BSStatPanel_Items(panelRightMenu, screen);
                 break;

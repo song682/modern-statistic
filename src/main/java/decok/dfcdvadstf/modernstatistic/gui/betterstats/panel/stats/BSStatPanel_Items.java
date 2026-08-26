@@ -199,15 +199,7 @@ public class BSStatPanel_Items extends BSStatPanel {
         }
 
         private void showTooltip(int mouseX, int mouseY) {
-            List<String> lines = new ArrayList<>();
-            String name = I18n.format(entry.item.getUnlocalizedName() + ".name").trim();
-            lines.add(name);
-            if (entry.mined > 0) lines.add(I18n.format("stat_type.minecraft.mined") + ": " + entry.mined);
-            if (entry.crafted > 0) lines.add(I18n.format("stat_type.minecraft.crafted") + ": " + entry.crafted);
-            if (entry.used > 0) lines.add(I18n.format("stat_type.minecraft.used") + ": " + entry.used);
-            if (entry.broken > 0) lines.add(I18n.format("stat_type.minecraft.broken") + ": " + entry.broken);
-            if (entry.pickup > 0) lines.add(I18n.format("stat.pickup") + ": " + entry.pickup);
-            if (entry.drop > 0) lines.add(I18n.format("stat.drop") + ": " + entry.drop);
+            List<String> lines = buildTooltipLines(entry);
 
             // Build tooltip text (newline-joined for Tooltip.create)
             // 构建 tooltip 文本（用换行符连接以供 Tooltip.create 使用）
@@ -288,5 +280,28 @@ public class BSStatPanel_Items extends BSStatPanel {
                 screen.showWikiConfirm(url);
             } catch (java.io.UnsupportedEncodingException ignored) {}
         }
+    }
+
+    // ==================== Tooltip helper (overridable by subclasses) ====================
+
+    /**
+     * Build tooltip lines for an item widget.
+     * <p>Subclasses may override to customise tooltip content
+     * （子类可覆盖以自定义 tooltip 内容）。</p>
+     *
+     * @param entry the item stat entry
+     * @return list of tooltip lines (first line is the item name)
+     */
+    protected List<String> buildTooltipLines(ItemStatEntry entry) {
+        List<String> lines = new ArrayList<>();
+        String name = I18n.format(entry.item.getUnlocalizedName() + ".name").trim();
+        lines.add(name);
+        if (entry.mined > 0) lines.add(I18n.format("stat_type.minecraft.mined") + ": " + entry.mined);
+        if (entry.crafted > 0) lines.add(I18n.format("stat_type.minecraft.crafted") + ": " + entry.crafted);
+        if (entry.used > 0) lines.add(I18n.format("stat_type.minecraft.used") + ": " + entry.used);
+        if (entry.broken > 0) lines.add(I18n.format("stat_type.minecraft.broken") + ": " + entry.broken);
+        if (entry.pickup > 0) lines.add(I18n.format("stat.pickup") + ": " + entry.pickup);
+        if (entry.drop > 0) lines.add(I18n.format("stat.drop") + ": " + entry.drop);
+        return lines;
     }
 }

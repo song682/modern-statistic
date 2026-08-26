@@ -120,15 +120,14 @@ public class BSStatPanel_Mobs extends BSStatPanel {
             // Cell background
             fill(x, y, getEndX(), getEndY(), 0x80000000);
 
-            // Entity model preview rendered in the cell center
-            // 在格子中央渲染实体模型预览
+            // Entity model preview — fills the entire cell (no text overlay)
+            // 实体模型预览 — 填满整个格子（无文字覆盖）
             EntityLivingBase entity = EntityModelRenderer.getEntity(entry.eggInfo.spawnedID);
             if (entity != null) {
-                // Scale the model so its height fills the middle band of the cell
-                // (between the name at the top and the kills line at the bottom)
-                // 按实体身高缩放模型，使其填满格子中部区域（顶部名字与底部统计之间）
-                int modelScale = Math.max(8, Math.min(30,
-                        (int) (24.0F / Math.max(0.1F, entity.height))));
+                // Scale the model to fill the cell
+                // 按实体身高缩放模型，使其填满整个格子
+                int modelScale = Math.max(8, Math.min(35,
+                        (int) (30.0F / Math.max(0.1F, entity.height))));
                 // Pass mouse offsets relative to cell center so the model turns
                 // to follow the cursor, mirroring the vanilla inventory player preview
                 // 传入鼠标相对格子中心的偏移，使模型随光标转动（与原版背包玩家预览一致）
@@ -137,26 +136,11 @@ public class BSStatPanel_Mobs extends BSStatPanel {
                 int cellCenterX = x + width / 2;
                 int cellCenterY = y + height / 2;
                 boolean followCursor = ModernStatistic.config.mobModelFollowCursor;
-                EntityModelRenderer.renderEntity(entity, cellCenterX, y + height - 14,
+                EntityModelRenderer.renderEntity(entity, cellCenterX, y + height - 8,
                         modelScale,
                         followCursor ? (float) (mouseX - cellCenterX) : 0.0F,
                         followCursor ? (float) (mouseY - cellCenterY) : 0.0F);
             }
-
-            // Entity name
-            String name = entry.name;
-            if (getFontRenderer().getStringWidth(name) > width - 4) {
-                // Truncate if too long
-                while (getFontRenderer().getStringWidth(name + "...") > width - 4 && name.length() > 1) {
-                    name = name.substring(0, name.length() - 1);
-                }
-                name += "...";
-            }
-            drawCenteredString(getFontRenderer(), name, x + width / 2, y + 2, 0xFFFFFF);
-
-            // Kills / Deaths
-            String kd = entry.kills + " / " + entry.killedBy;
-            drawCenteredString(getFontRenderer(), kd, x + width / 2, y + height - 12, 0xAAAAAA);
         }
 
         @Override
@@ -200,7 +184,7 @@ public class BSStatPanel_Mobs extends BSStatPanel {
 
     /**
      * Build tooltip lines for a mob widget.
-     * <p>显示实体名称、击杀数、被击杀数。</p>
+     * <p>显示实体名称、空行间隔、击杀数、被击杀数。</p>
      *
      * @param entry the mob stat entry
      * @return list of tooltip lines
@@ -208,6 +192,10 @@ public class BSStatPanel_Mobs extends BSStatPanel {
     protected List<String> buildTooltipLines(MobStatEntry entry) {
         List<String> lines = new ArrayList<>();
         lines.add(entry.name);
+        // Add blank lines for visual spacing
+        // 添加空行作为视觉间隔
+        lines.add("");
+        lines.add("");
         lines.add(I18n.format("stat.entityKills") + ": " + entry.kills);
         lines.add(I18n.format("stat.entityKilledBy") + ": " + entry.killedBy);
         return lines;

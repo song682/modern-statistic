@@ -2,7 +2,10 @@ package decok.dfcdvadstf.modernstatistic.gui.betterstats.panel.stats;
 
 import java.util.*;
 
+import decok.dfcdvadstf.catframe.ui.components.Tooltip;
+import decok.dfcdvadstf.catframe.ui.components.WidgetTooltipHolder;
 import decok.dfcdvadstf.catframe.ui.layouts.GridLayout;
+import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import decok.dfcdvadstf.catframe.ui.overlay.OverlayManager;
 import decok.dfcdvadstf.modernstatistic.ItemStatsTracker;
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
@@ -157,6 +160,7 @@ public class BSStatPanel_Items extends BSStatPanel {
     protected class ItemStatWidget extends TElement {
 
         protected final ItemStatEntry entry;
+        private final WidgetTooltipHolder tooltipHolder = new WidgetTooltipHolder();
 
         public ItemStatWidget(ItemStatEntry entry, int x, int y) {
             super(x, y, CELL_SIZE, CELL_SIZE);
@@ -190,13 +194,13 @@ public class BSStatPanel_Items extends BSStatPanel {
         protected void postRenderSelf(int mouseX, int mouseY, float partialTicks) {
             if (hovered) {
                 drawOutline(x, y, getEndX(), getEndY(), COLOR_NORMAL_HOVERED);
-                drawTooltip(mouseX, mouseY);
+                showTooltip(mouseX, mouseY);
             }
         }
 
-        private void drawTooltip(int mouseX, int mouseY) {
-            String name = I18n.format(entry.item.getUnlocalizedName() + ".name").trim();
+        private void showTooltip(int mouseX, int mouseY) {
             List<String> lines = new ArrayList<>();
+            String name = I18n.format(entry.item.getUnlocalizedName() + ".name").trim();
             lines.add(name);
             if (entry.mined > 0) lines.add(I18n.format("stat_type.minecraft.mined") + ": " + entry.mined);
             if (entry.crafted > 0) lines.add(I18n.format("stat_type.minecraft.crafted") + ": " + entry.crafted);
@@ -205,8 +209,16 @@ public class BSStatPanel_Items extends BSStatPanel {
             if (entry.pickup > 0) lines.add(I18n.format("stat.pickup") + ": " + entry.pickup);
             if (entry.drop > 0) lines.add(I18n.format("stat.drop") + ": " + entry.drop);
 
-            // Draw simple tooltip
-            drawHoverTooltip(lines, mouseX, mouseY);
+            // Build tooltip text (newline-joined for Tooltip.create)
+            // 构建 tooltip 文本（用换行符连接以供 Tooltip.create 使用）
+            String tooltipText = String.join("\n", lines);
+            Tooltip tooltip = Tooltip.create(tooltipText);
+            tooltipHolder.set(tooltip);
+
+            // Use widget's screen rectangle for positioning
+            // 使用控件的屏幕矩形进行定位
+            ScreenRectangle widgetRect = new ScreenRectangle(x, y, width, height);
+            tooltipHolder.refreshTooltipForNextRenderPass(mouseX, mouseY, hovered, focused, widgetRect);
         }
 
         @Override
@@ -275,37 +287,6 @@ public class BSStatPanel_Items extends BSStatPanel {
                 String url = ModernStatistic.config.itemWikiBaseUrl + encoded;
                 screen.showWikiConfirm(url);
             } catch (java.io.UnsupportedEncodingException ignored) {}
-        }
-    }
-
-    // ==================== Tooltip helper (static, shared) ====================
-
-    protected static void drawHoverTooltip(List<String> lines, int x, int y) {
-        if (lines.isEmpty()) return;
-        int maxW = 0;
-        for (String s : lines) {
-            int w = getFontRenderer().getStringWidth(s);
-            if (w > maxW) maxW = w;
-        }
-        int h = lines.size() * 10 - 2;
-        int tx = x + 12;
-        int ty = y - 12;
-        int sw = getMC().currentScreen.width;
-        int sh = getMC().currentScreen.height;
-        if (tx + maxW > sw) tx -= 28 + maxW;
-        if (ty + h + 6 > sh) ty = sh - h - 6;
-
-        // Background
-        net.minecraft.client.gui.Gui.drawRect(tx - 3, ty - 4, tx + maxW + 3, ty - 3, 0x505000FF);
-        net.minecraft.client.gui.Gui.drawRect(tx - 3, ty + h + 3, tx + maxW + 3, ty + h + 4, 0x5028007F);
-        net.minecraft.client.gui.Gui.drawRect(tx - 3, ty - 3, tx + maxW + 3, ty + h + 3, 0xF0100010);
-        net.minecraft.client.gui.Gui.drawRect(tx - 4, ty - 3, tx - 3, ty + h + 3, 0x505000FF);
-        net.minecraft.client.gui.Gui.drawRect(tx + maxW + 3, ty - 3, tx + maxW + 4, ty + h + 3, 0x5028007F);
-        net.minecraft.client.gui.Gui.drawRect(tx - 3, ty - 3 + 1, tx - 3 + 1, ty + h + 3 - 1, 0x5028007F);
-        net.minecraft.client.gui.Gui.drawRect(tx + maxW + 2, ty - 3 + 1, tx + maxW + 3, ty + h + 3 - 1, 0x5028007F);
-
-        for (int i = 0; i < lines.size(); i++) {
-            getFontRenderer().drawStringWithShadow(lines.get(i), tx, ty + i * 10, -1);
         }
     }
 }

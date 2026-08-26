@@ -161,6 +161,10 @@ public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, Wiki
      */
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        // Reset CatFrame deferred rendering pipeline for this frame
+        // 重置 CatFrame 延迟渲染管线
+        decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor.getInstance().resetForNewFrame();
+        
         super.drawScreen(mouseX, mouseY, partialTicks);
 
         if (rootElement != null) {
@@ -171,6 +175,10 @@ public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, Wiki
         // Render all registered overlays (e.g. right-click popup menu)
         // 渲染所有已注册的 Overlay（如右键弹出菜单）——保持在最上层
         decok.dfcdvadstf.catframe.ui.overlay.OverlayManager.INSTANCE.renderAll(mouseX, mouseY, partialTicks);
+        
+        // Flush deferred elements (items + tooltips) — must be called after all rendering
+        // 刷新延迟元素（物品 + tooltip）——必须在所有渲染完成后调用
+        decok.dfcdvadstf.catframe.ui.GuiGraphicsExtractor.getInstance().extractDeferredElements();
     }
 
     // ==================== Input ====================

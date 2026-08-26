@@ -2,6 +2,9 @@ package decok.dfcdvadstf.modernstatistic.gui.betterstats.panel.stats;
 
 import java.util.*;
 
+import decok.dfcdvadstf.catframe.ui.components.Tooltip;
+import decok.dfcdvadstf.catframe.ui.components.WidgetTooltipHolder;
+import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import decok.dfcdvadstf.modernstatistic.ModernStatistic;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.TElement;
 import decok.dfcdvadstf.modernstatistic.gui.betterstats.panel.BSPanel;
@@ -105,6 +108,7 @@ public class BSStatPanel_Mobs extends BSStatPanel {
     protected class MobStatWidget extends TElement {
 
         protected final MobStatEntry entry;
+        private final WidgetTooltipHolder tooltipHolder = new WidgetTooltipHolder();
 
         public MobStatWidget(MobStatEntry entry, int x, int y, int size) {
             super(x, y, size, size);
@@ -159,11 +163,11 @@ public class BSStatPanel_Mobs extends BSStatPanel {
         protected void postRenderSelf(int mouseX, int mouseY, float partialTicks) {
             if (hovered) {
                 drawOutline(x, y, getEndX(), getEndY(), COLOR_NORMAL_HOVERED);
-                drawTooltip(mouseX, mouseY);
+                showTooltip(mouseX, mouseY);
             }
         }
 
-        private void drawTooltip(int mouseX, int mouseY) {
+        private void showTooltip(int mouseX, int mouseY) {
             List<String> lines = new ArrayList<>();
             lines.add(entry.name);
 
@@ -183,7 +187,16 @@ public class BSStatPanel_Mobs extends BSStatPanel {
             }
             lines.add(killedByText);
 
-            BSStatPanel_Items.drawHoverTooltip(lines, mouseX, mouseY);
+            // Build tooltip text (newline-joined for Tooltip.create)
+            // 构建 tooltip 文本（用换行符连接以供 Tooltip.create 使用）
+            String tooltipText = String.join("\n", lines);
+            Tooltip tooltip = Tooltip.create(tooltipText);
+            tooltipHolder.set(tooltip);
+
+            // Use widget's screen rectangle for positioning
+            // 使用控件的屏幕矩形进行定位
+            ScreenRectangle widgetRect = new ScreenRectangle(x, y, width, height);
+            tooltipHolder.refreshTooltipForNextRenderPass(mouseX, mouseY, hovered, focused, widgetRect);
         }
 
         @Override

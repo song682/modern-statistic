@@ -23,6 +23,9 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
     /** Icon of the source-code menu item / 源代码菜单项图标 */
     private static final ResourceLocation SOURCE_ICON =
             new ResourceLocation("modernstatistic", "textures/gui/statsicon/code.png");
+    /** Icon of the "view vanilla stats" menu item / “查看原版统计界面”菜单项图标 */
+    private static final ResourceLocation VANILLA_STATS_ICON =
+            new ResourceLocation("modernstatistic", "textures/gui/statsicon/vanilla_statics.png");
 
     private static final int BTN_HEIGHT = 14;
     private static final int BTN_SPACING = 4;
@@ -41,10 +44,22 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
         int btnX = getX() + getScrollPadding();
         int btnY = getY() + 1;
 
-        // View: vanilla stats
+        // View: drop-down menu — the item jumps to the stats screen picked
+        // by the defaultUILayout config (vanilla GuiStats or tabbed GuiStatics).
+        // View：下拉菜单——菜单项按下后按 defaultUILayout 配置跳转到
+        // 对应模式的统计界面（原版 GuiStats 或标签页式 GuiStatics）。
         TButtonWidget btnView = new TButtonWidget(btnX, btnY, 100, BTN_HEIGHT,
                 I18n.format("betterstats.gui.menu_bar.view"),
-                btn -> screen.switchToVanillaStats());
+                btn -> {
+                    DropDownPanel menu = new DropDownPanel(btn);
+                    // "View vanilla stats" item with its icon / 菜单项带图标
+                    DropDownPanel.MenuItem vanillaItem = DropDownPanel.item(
+                            Text.translatable("betterstats.gui.menu_bar.view.vanilla_stats"),
+                            screen::switchToDefaultStats);
+                    vanillaItem.icon(VANILLA_STATS_ICON);
+                    menu.addItem(vanillaItem);
+                    menu.show();
+                });
         addChild(btnView, false);
         btnX += 100 + BTN_SPACING;
 

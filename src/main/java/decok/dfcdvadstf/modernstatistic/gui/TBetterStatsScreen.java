@@ -143,6 +143,24 @@ public class TBetterStatsScreen extends Screen implements GuiYesNoCallback, Wiki
         mc.displayGuiScreen(new GuiStats(parent, statFileWriter));
     }
 
+    /**
+     * Switch to the stats screen picked by the {@code defaultUILayout} config
+     * (the "View vanilla stats" drop-down menu action): TABBED opens the
+     * tabbed {@link GuiStatics}, VANILLA (or any other value) opens the vanilla
+     * {@link GuiStats}.
+     * <p>
+     * 按 {@code defaultUILayout} 配置切换统计界面（"查看原版统计界面"下拉菜单动作）：
+     * TABBED 打开标签页式 {@link GuiStatics}，VANILLA（或其他值）打开原版 {@link GuiStats}。
+     * </p>
+     */
+    public void switchToDefaultStats() {
+        if (ModernStatistic.config.isBackToTabbedMode()) {
+            mc.displayGuiScreen(new GuiStatics(parent, statFileWriter));
+        } else {
+            switchToVanillaStats();
+        }
+    }
+
     // ==================== Rendering ====================
 
     /**

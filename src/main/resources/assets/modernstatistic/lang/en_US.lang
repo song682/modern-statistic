@@ -1,6 +1,8 @@
 stat.pickup=Picked Up
 stat.drop=Dropped
 stat.blocksButton=Blocks
+stat.entityKills=Kills
+stat.entityKilledBy=Killed By
 
 # BetterStats-style Paneled mode keys
 betterstats.gui.filters=Filters

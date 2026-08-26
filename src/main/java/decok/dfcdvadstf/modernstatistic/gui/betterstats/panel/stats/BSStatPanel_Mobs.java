@@ -168,24 +168,7 @@ public class BSStatPanel_Mobs extends BSStatPanel {
         }
 
         private void showTooltip(int mouseX, int mouseY) {
-            List<String> lines = new ArrayList<>();
-            lines.add(entry.name);
-
-            String killsText;
-            if (entry.kills == 0) {
-                killsText = I18n.format("stat.entityKills.none", entry.name);
-            } else {
-                killsText = I18n.format("stat.entityKills", entry.kills, entry.name);
-            }
-            lines.add(killsText);
-
-            String killedByText;
-            if (entry.killedBy == 0) {
-                killedByText = I18n.format("stat.entityKilledBy.none", entry.name);
-            } else {
-                killedByText = I18n.format("stat.entityKilledBy", entry.name, entry.killedBy);
-            }
-            lines.add(killedByText);
+            List<String> lines = buildTooltipLines(entry);
 
             // Build tooltip text (newline-joined for Tooltip.create)
             // 构建 tooltip 文本（用换行符连接以供 Tooltip.create 使用）
@@ -211,5 +194,22 @@ public class BSStatPanel_Mobs extends BSStatPanel {
             }
             return false;
         }
+    }
+
+    // ==================== Tooltip helper ====================
+
+    /**
+     * Build tooltip lines for a mob widget.
+     * <p>显示实体名称、击杀数、被击杀数。</p>
+     *
+     * @param entry the mob stat entry
+     * @return list of tooltip lines
+     */
+    protected List<String> buildTooltipLines(MobStatEntry entry) {
+        List<String> lines = new ArrayList<>();
+        lines.add(entry.name);
+        lines.add(I18n.format("stat.entityKills") + ": " + entry.kills);
+        lines.add(I18n.format("stat.entityKilledBy") + ": " + entry.killedBy);
+        return lines;
     }
 }

@@ -13,6 +13,8 @@ betterstats.gui.menu_bar.view.vanilla_stats=查看原版统计界面
 betterstats.gui.menu_bar.about=关于
 betterstats.gui.menu_bar.about.source=源代码
 betterstats.gui.menu_bar.about.credits=致谢
+betterstats.gui.menu_bar.about.curseforge=CurseForge
+betterstats.gui.menu_bar.about.modrinth=Modrinth
 betterstats.tab.balanced_diet=均衡饮食
 betterstats.tab.monster_hunter=怪物猎人
 

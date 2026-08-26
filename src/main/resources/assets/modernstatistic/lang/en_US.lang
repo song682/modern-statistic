@@ -13,6 +13,8 @@ betterstats.gui.menu_bar.view.vanilla_stats=View vanilla stats screen
 betterstats.gui.menu_bar.about=About
 betterstats.gui.menu_bar.about.source=Source Code
 betterstats.gui.menu_bar.about.credits=Credits
+betterstats.gui.menu_bar.about.curseforge=CurseForge
+betterstats.gui.menu_bar.about.modrinth=Modrinth
 betterstats.tab.balanced_diet=Balanced Diet
 betterstats.tab.monster_hunter=Monster Hunter
 

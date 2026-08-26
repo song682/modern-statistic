@@ -9,9 +9,9 @@ import net.minecraft.util.ResourceLocation;
 
 /**
  * Simplified top menu bar for the BetterStats screen.
- * <p>The About entry opens a drop-down menu (source code / credits links),
- * replacing the former {@code GuiAboutModernStatistic} screen.</p>
- * <p>顶部菜单栏：About 入口改为下拉菜单（源代码 / 致谢链接），
+ * <p>The About entry opens a drop-down menu (source code / credits /
+ * download links), replacing the former {@code GuiAboutModernStatistic} screen.</p>
+ * <p>顶部菜单栏：About 入口改为下拉菜单（源代码 / 致谢 / 下载链接），
  * 替代原先的 {@code GuiAboutModernStatistic} 界面。</p>
  */
 public class BSPanel_StatisticsMenuBar extends BSPanel {
@@ -20,9 +20,19 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
     private static final String SOURCE_URL = "https://github.com/song682/modern-statistic";
     /** Original BetterStats repository (credits) / 原版 BetterStats 仓库（致谢） */
     private static final String CREDIT_URL = "https://github.com/TheCSDev/mc-better-stats";
+    /** CurseForge download page / CurseForge 下载页面 */
+    private static final String CURSEFORGE_URL = "https://www.curseforge.com/minecraft/mc-mods/modern-statistics";
+    /** Modrinth download page / Modrinth 下载页面 */
+    private static final String MODRINTH_URL = "https://modrinth.com/mod/modernstatistics";
     /** Icon of the source-code menu item / 源代码菜单项图标 */
     private static final ResourceLocation SOURCE_ICON =
             new ResourceLocation("modernstatistic", "textures/gui/statsicon/code.png");
+    /** Icon of the CurseForge menu item / CurseForge 菜单项图标 */
+    private static final ResourceLocation CURSEFORGE_ICON =
+            new ResourceLocation("modernstatistic", "textures/gui/statsicon/curse.png");
+    /** Icon of the Modrinth menu item / Modrinth 菜单项图标 */
+    private static final ResourceLocation MODRINTH_ICON =
+            new ResourceLocation("modernstatistic", "textures/gui/statsicon/modrinth.png");
     /** Icon of the "view vanilla stats" menu item / “查看原版统计界面”菜单项图标 */
     private static final ResourceLocation VANILLA_STATS_ICON =
             new ResourceLocation("modernstatistic", "textures/gui/statsicon/vanilla_statics.png");
@@ -63,9 +73,9 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
         addChild(btnView, false);
         btnX += 100 + BTN_SPACING;
 
-        // About: drop-down menu with source code / credits links, both going
-        // through the wiki-style link confirmation flow.
-        // About：下拉菜单提供源代码 / 致谢链接，均走 Wiki 式链接确认流程。
+        // About: drop-down menu with source code / credits / download links,
+        // all going through the wiki-style link confirmation flow.
+        // About：下拉菜单提供源代码 / 致谢 / 下载链接，均走 Wiki 式链接确认流程。
         TButtonWidget btnAbout = new TButtonWidget(btnX, btnY, 80, BTN_HEIGHT,
                 I18n.format("betterstats.gui.menu_bar.about"),
                 btn -> {
@@ -78,6 +88,19 @@ public class BSPanel_StatisticsMenuBar extends BSPanel {
                     menu.addItem(sourceItem);
                     menu.addItem(Text.translatable("betterstats.gui.menu_bar.about.credits"),
                             () -> screen.showWikiConfirm(CREDIT_URL));
+                    // Separator between info links and download links / 信息链接与下载链接之间的分隔线
+                    menu.addSeparator();
+                    // Download items with their icons / 下载链接项带图标
+                    DropDownPanel.MenuItem curseItem = DropDownPanel.item(
+                            Text.translatable("betterstats.gui.menu_bar.about.curseforge"),
+                            () -> screen.showWikiConfirm(CURSEFORGE_URL));
+                    curseItem.icon(CURSEFORGE_ICON);
+                    menu.addItem(curseItem);
+                    DropDownPanel.MenuItem modrinthItem = DropDownPanel.item(
+                            Text.translatable("betterstats.gui.menu_bar.about.modrinth"),
+                            () -> screen.showWikiConfirm(MODRINTH_URL));
+                    modrinthItem.icon(MODRINTH_ICON);
+                    menu.addItem(modrinthItem);
                     menu.show();
                 });
         addChild(btnAbout, false);

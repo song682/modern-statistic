@@ -45,6 +45,17 @@ public abstract class BSStatPanel extends BSPanel {
     }
 
     @Override
+    public void setPosition(int x, int y) {
+        super.setPosition(x, y);
+        // Move the slider alongside this element when this element is moved
+        // (mirrors original BetterStats)
+        // 面板移动时滚动条跟随移动（对照原版 BetterStats）
+        if (this.scrollBar != null) {
+            this.scrollBar.setPosition(getEndX(), getY());
+        }
+    }
+
+    @Override
     public void onParentChanged() {
         super.onParentChanged();
         // Remove scrollbar from previous parent

@@ -160,9 +160,9 @@ public class BSStatPanel_Mobs extends BSStatPanel {
             Tooltip tooltip = Tooltip.create(tooltipText);
             tooltipHolder.set(tooltip);
 
-            // Use widget's screen rectangle for positioning
-            // 使用控件的屏幕矩形进行定位
-            ScreenRectangle widgetRect = new ScreenRectangle(x, y, width, height);
+            // Use widget's screen-space rectangle (accounts for scroll offset)
+            // 使用控件的屏幕空间矩形（已补偿滚动偏移）
+            ScreenRectangle widgetRect = getScreenRect();
             tooltipHolder.refreshTooltipForNextRenderPass(mouseX, mouseY, hovered, focused, widgetRect);
         }
 

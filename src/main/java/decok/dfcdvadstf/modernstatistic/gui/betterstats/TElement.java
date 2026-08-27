@@ -6,6 +6,7 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.Tessellator;
 
 import decok.dfcdvadstf.catframe.ui.layouts.ILayout;
+import decok.dfcdvadstf.catframe.ui.navigation.ScreenRectangle;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
@@ -95,6 +96,43 @@ public class TElement implements ILayout {
     public void updateHover(int mouseX, int mouseY) {
         this.hovered = visible && mouseX >= x && mouseX < getEndX()
                 && mouseY >= y && mouseY < getEndY();
+    }
+
+    /**
+     * Get this element's Y position in screen space, accounting for all
+     * ancestor {@link TPanelElement} scroll offsets.
+     * <p>获取本元素在屏幕空间中的 Y 坐标，累积所有祖先
+     * {@link TPanelElement} 的滚动偏移。</p>
+     */
+    public int getScreenY() {
+        int sy = y;
+        TElement p = parent;
+        while (p != null) {
+            if (p instanceof TPanelElement) {
+                sy += (int) ((TPanelElement) p).getScrollY();
+            }
+            p = p.parent;
+        }
+        return sy;
+    }
+
+    /**
+     * Get this element's screen-space rectangle, accounting for all
+     * ancestor {@link TPanelElement} scroll offsets.
+     * <p>获取本元素在屏幕空间中的矩形，累积所有祖先
+     * {@link TPanelElement} 的滚动偏移。</p>
+     */
+    public ScreenRectangle getScreenRect() {
+        return new ScreenRectangle(getScreenX(), getScreenY(), width, height);
+    }
+
+    /**
+     * Get this element's X position in screen space (currently same as
+     * {@code x} since no horizontal scrolling exists).
+     * <p>获取本元素在屏幕空间中的 X 坐标（当前无水平滚动，与 {@code x} 相同）。</p>
+     */
+    public int getScreenX() {
+        return x;
     }
 
     // ==================== Parent / Children ====================

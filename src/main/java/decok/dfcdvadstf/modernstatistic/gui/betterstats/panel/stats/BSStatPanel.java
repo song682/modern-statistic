@@ -127,16 +127,11 @@ public abstract class BSStatPanel extends BSPanel {
 
     /**
      * Get the Y position for the next child (auto-layout).
-     * <p>Returns a coordinate in this panel's relative coordinate space,
-     * suitable for use as a child's y position (the absolute→relative
-     * conversion in {@code TPanelElement.addChild} will preserve it as-is).</p>
-     * <p>获取下一个子元素的 Y 位置（自动布局）。返回本面板相对坐标空间中的值，
-     * 可直接用作子元素的 y 坐标（{@code TPanelElement.addChild} 的绝对→相对转换会保持原值不变）。</p>
      */
     protected int getChildBottomY() {
-        if (getChildCount() == 0) return getScrollPadding();
+        if (getChildCount() == 0) return getY() + getScrollPadding();
         TScrollBarWidget sb = getVerticalScrollBar();
-        int maxBottom = getScrollPadding();
+        int maxBottom = getY() + getScrollPadding();
         for (TElement child : getChildren()) {
             if (child == sb) continue;
             if (child.isVisible() && child.getEndY() > maxBottom) {

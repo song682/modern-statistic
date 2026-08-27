@@ -78,7 +78,9 @@ public abstract class MixinGuiStats extends GuiScreen {
 
         // TABBED mode: switch to the tabbed screen (all tab logic lives there)
         // TABBED 模式：切换到标签页式界面（全部标签逻辑都在其中）
-        this.mc.displayGuiScreen(
-                new GuiStatics(this.field_146549_a, this.field_146546_t));
+        if (ModernStatistic.config.isTabbedMode()) {
+            this.mc.displayGuiScreen(
+                    new GuiStatics(this.field_146549_a, this.field_146546_t));
+        }
     }
 }

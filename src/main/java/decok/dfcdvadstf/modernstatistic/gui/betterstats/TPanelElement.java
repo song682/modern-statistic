@@ -147,6 +147,45 @@ public class TPanelElement extends TElement {
 
     // ==================== Rendering ====================
 
+    /**
+     * Override to adjust mouse Y coordinate for children.
+     * <p>Children live in content space (shifted by scrollY), so hover detection
+     * needs the mouse coordinate in content space as well. The panel's own hover
+     * uses screen coordinates (handled by {@code super.render} via {@code updateHover}).</p>
+     * <p>覆写以调整子元素的鼠标 Y 坐标。子元素位于内容空间（经 scrollY 偏移），
+     * 因此悬停检测需要内容空间的鼠标坐标；面板自身的悬停使用屏幕坐标
+     * （由 {@code super.render} 内的 {@code updateHover} 处理）。</p>
+     */
+    @Override
+    public void render(int mouseX, int mouseY, float partialTicks) {
+        if (!visible) return;
+        // Update panel's own hover in screen space
+        updateHover(mouseX, mouseY);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        renderSelf(mouseX, mouseY, partialTicks);
+        // Convert mouse Y to content space for children
+        int adjustedMouseY = mouseY - getContentY();
+        for (TElement child : children) {
+            if (child.visible) {
+                child.render(mouseX, adjustedMouseY, partialTicks);
+            }
+        }
+    }
+
+    @Override
+    public void postRender(int mouseX, int mouseY, float partialTicks) {
+        if (!visible) return;
+        postRenderSelf(mouseX, mouseY, partialTicks);
+        // Convert mouse Y to content space for children
+        int adjustedMouseY = mouseY - getContentY();
+        for (TElement child : children) {
+            if (child.visible) {
+                child.postRender(mouseX, adjustedMouseY, partialTicks);
+            }
+        }
+    }
+
     @Override
     protected void renderSelf(int mouseX, int mouseY, float partialTicks) {
         // Update totalContentHeight based on children

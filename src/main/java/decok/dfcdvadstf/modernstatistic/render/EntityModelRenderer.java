@@ -20,14 +20,8 @@ import org.lwjgl.opengl.GL12;
  * <p>Mirrors vanilla {@code GuiInventory.drawEntityOnScreen} but works with any
  * {@link EntityLivingBase} subclass instead of only the player, e.g. mob previews
  * in the statistics screen.</p>
- * <p>
- * 实体模型渲染器 —— 在 GUI 中渲染生物（动物与怪物）的 3D 模型。
- * 实现参照原版 {@code GuiInventory.drawEntityOnScreen}，但适用于任意 {@link EntityLivingBase}
- * 子类而不只是玩家，例如统计界面中的生物模型预览。
- * </p>
  * <p>Current scope is limited to living entities (animals &amp; monsters); tile entities
- * are out of scope for now.
- * 当前范围仅限生物（动物与怪物），方块实体暂不在范围内。</p>
+ * are out of scope for now.</p>
  */
 public final class EntityModelRenderer {
 
@@ -65,7 +59,6 @@ public final class EntityModelRenderer {
 
         EntityLivingBase living = (EntityLivingBase) entity;
         // Reset the pose to a neutral static stance so the model renders upright
-        // 将姿态重置为中立静态站姿，保证模型正立渲染
         living.ticksExisted = 1;
         living.onGround = true;
         living.setPosition(0.0D, 0.0D, 0.0D);
@@ -98,7 +91,6 @@ public final class EntityModelRenderer {
         }
 
         // Make sure the render engine is available for texture binding
-        // 确保渲染引擎可用，以便绑定实体纹理
         if (RenderManager.instance.renderEngine == null) {
             RenderManager.instance.renderEngine = Minecraft.getMinecraft().getTextureManager();
         }
@@ -111,7 +103,6 @@ public final class EntityModelRenderer {
         GL11.glRotatef(180.0F, 0.0F, 0.0F, 1.0F);
 
         // Back up the entity's rotation fields (restored after rendering)
-        // 备份实体的旋转字段（渲染结束后恢复）
         float prevYawOffset = entity.renderYawOffset;
         float prevYaw = entity.rotationYaw;
         float prevPitch = entity.rotationPitch;
@@ -124,8 +115,6 @@ public final class EntityModelRenderer {
         // dark glColor (left over from GUI text) would darken the whole model.
         // RenderBiped.doRender does exactly the same, which is why skeletons/zombies
         // looked normal while other mobs were too dark.
-        // 将材质颜色重置为白色：GL_COLOR_MATERIAL 开启时，GUI 文字残留的暗色 glColor
-        // 会使整个模型变暗。RenderBiped.doRender 正是这样做，所以骷髅/僵尸正常而其他生物偏黑。
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         // Disable the lightmap texture unit: lightmap coordinates are only valid under
         // the world matrix (set by renderEntityStatic); under the GUI matrix the stale
@@ -141,27 +130,22 @@ public final class EntityModelRenderer {
         // (glScalef(-scale, ...)), so screen left is the model's own right.
         // The model must turn toward its own right when the cursor moves left,
         // i.e. behave as if facing the player, not mirroring the cursor.
-        // 取反 yaw 偏移：GUI 渲染管线带 X 轴镜像（glScalef(-scale, ...)），屏幕左侧
-        // 即模型自身右侧；因此光标左移时模型应转向自身右侧（如同面向玩家），而不是镜像光标。
         entity.renderYawOffset = -(float) Math.atan(yawOffset / 40.0F) * 20.0F;
         entity.rotationYaw = -(float) Math.atan(yawOffset / 40.0F) * 40.0F;
         // Invert the pitch as well: with the model facing the player, moving the
         // cursor down must tilt the model down toward the cursor, not up.
-        // pitch 同样取反：模型面朝玩家时，光标下移应使模型向下倾斜朝向光标，而非上仰。
         entity.rotationPitch = ((float) Math.atan(pitchOffset / 40.0F)) * 20.0F;
         entity.rotationYawHead = entity.rotationYaw;
         entity.prevRotationYawHead = entity.rotationYaw;
         GL11.glTranslatef(0.0F, entity.yOffset, 0.0F);
 
         // Render from the back so the model faces the viewer
-        // 从背面视角渲染，使模型正对观察者
         float prevPlayerViewY = RenderManager.instance.playerViewY;
         RenderManager.instance.playerViewY = 180.0F;
         RenderManager.instance.renderEntityWithPosYaw(entity, 0.0D, 0.0D, 0.0D, 0.0F, 1.0F);
         RenderManager.instance.playerViewY = prevPlayerViewY;
 
         // Restore the backed-up rotation fields
-        // 恢复备份的旋转字段
         entity.renderYawOffset = prevYawOffset;
         entity.rotationYaw = prevYaw;
         entity.rotationPitch = prevPitch;
@@ -173,7 +157,6 @@ public final class EntityModelRenderer {
         GL11.glDisable(GL12.GL_RESCALE_NORMAL);
 
         // Restore lightmap state
-        // 还原 lightmap 状态
         OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
